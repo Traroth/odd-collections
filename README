@@ -1,0 +1,33 @@
+# ChunkyList
+
+[![Maven Central](https://img.shields.io/maven-central/v/fr.dufrenoy.util/chunky-list)](https://maven-badges.herokuapp.com/maven-central/fr.dufrenoy.util/chunky-list)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Traroth/Chunky-List/blob/main/LICENSE)
+[![Java](https://img.shields.io/badge/Java-11+-blue.svg)](https://www.oracle.com/java/technologies/javase-downloads.html)
+
+A high-performance **unrolled linked list** implementation of `java.util.List`, designed for efficient random access and flexible insertions/deletions.
+
+---
+
+## 📋 Overview
+`ChunkyList` is a custom `java.util.List` implementation that uses a **linked list of fixed-size arrays** (chunks) to balance:
+- **Fast random access** (like `ArrayList`).
+- **Flexible insertions/deletions** (like `LinkedList`).
+
+### 🔥 Key Features
+- **Configurable growth/shrinking strategies** (`OVERFLOW_STRATEGY`, `EXTEND_STRATEGY`, `UNDERFLOW_STRATEGY`, `DISAPPEAR_STRATEGY`).
+- **Optimized `Spliterator`** for parallel streams.
+- **No external dependencies** (pure Java).
+- **Thread-unsafe** (external synchronization required for concurrent access).
+
+---
+
+## 🛠 Installation
+
+### Maven
+Add the dependency to your `pom.xml`:
+```xml
+<dependency>
+    <groupId>fr.dufrenoy.util</groupId>
+    <artifactId>chunky-list</artifactId>
+    <version>1.0-SNAPSHOT</version>
+</dependency>
