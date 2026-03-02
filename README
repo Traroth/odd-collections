@@ -1,33 +1,151 @@
 # ChunkyList
 
-[![Maven Central](https://img.shields.io/maven-central/v/fr.dufrenoy.util/chunky-list)](https://maven-badges.herokuapp.com/maven-central/fr.dufrenoy.util/chunky-list)
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Traroth/Chunky-List/blob/main/LICENSE)
-[![Java](https://img.shields.io/badge/Java-11+-blue.svg)](https://www.oracle.com/java/technologies/javase-downloads.html)
+A Java implementation of an **unrolled linked list** — a hybrid data structure that combines the memory locality of arrays with the dynamic resizing of linked lists.
 
-A high-performance **unrolled linked list** implementation of `java.util.List`, designed for efficient random access and flexible insertions/deletions.
+`ChunkyList<E>` extends `AbstractList<E>` and fully implements the `java.util.List` contract.
 
 ---
 
-## 📋 Overview
-`ChunkyList` is a custom `java.util.List` implementation that uses a **linked list of fixed-size arrays** (chunks) to balance:
-- **Fast random access** (like `ArrayList`).
-- **Flexible insertions/deletions** (like `LinkedList`).
+## How it works
 
-### 🔥 Key Features
-- **Configurable growth/shrinking strategies** (`OVERFLOW_STRATEGY`, `EXTEND_STRATEGY`, `UNDERFLOW_STRATEGY`, `DISAPPEAR_STRATEGY`).
-- **Optimized `Spliterator`** for parallel streams.
-- **No external dependencies** (pure Java).
-- **Thread-unsafe** (external synchronization required for concurrent access).
+Instead of storing elements one by one (like a `LinkedList`) or in a single contiguous array (like an `ArrayList`), a `ChunkyList` maintains a **doubly-linked chain of fixed-size arrays**, called Chunks.
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  Chunk 1    │────▶│  Chunk 2    │────▶│  Chunk 3    │
+│ [A, B, C]  │◀────│ [D, E, F]  │◀────│ [G, H, _]  │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
+
+This structure offers a middle ground between `ArrayList` and `LinkedList`:
+- Better **memory locality** than `LinkedList` (elements within a chunk are contiguous)
+- **No costly full-array copies** when inserting or removing, unlike `ArrayList`
 
 ---
 
-## 🛠 Installation
+## Features
 
-### Maven
-Add the dependency to your `pom.xml`:
-```xml
-<dependency>
-    <groupId>fr.dufrenoy.util</groupId>
-    <artifactId>chunky-list</artifactId>
-    <version>1.0-SNAPSHOT</version>
-</dependency>
+- Full `java.util.List` implementation (`get`, `set`, `add`, `remove`, `indexOf`, `lastIndexOf`, `contains`, `clear`, ...)
+- Configurable **chunk size** (default: 100)
+- Pluggable **growing and shrinking strategies**, swappable at runtime
+- Native **`Spliterator`** for efficient `stream()` and `parallelStream()` support
+- Fail-fast iterators via `modCount`
+- Copy constructors and collection constructors
+
+---
+
+## Strategies
+
+### GrowingStrategy
+
+Controls what happens when an element is inserted into a full chunk:
+
+| Strategy | Behaviour |
+|---|---|
+| `OVERFLOW_STRATEGY` *(default)* | The overflowing element is pushed into the next chunk (created if necessary) |
+| `EXTEND_STRATEGY` | A new chunk is created after the current one to hold the overflowing element |
+
+### ShrinkingStrategy
+
+Controls what happens after an element is removed from a chunk:
+
+| Strategy | Behaviour |
+|---|---|
+| `UNDERFLOW_STRATEGY` *(default)* | The first element of the next chunk is pulled into the current one |
+| `DISAPPEAR_STRATEGY` | The chunk is simply removed if it becomes empty |
+
+The two strategies are designed as **symmetric pairs**:
+- `OVERFLOW_STRATEGY` ↔ `UNDERFLOW_STRATEGY`
+- `EXTEND_STRATEGY` ↔ `DISAPPEAR_STRATEGY`
+
+Using a symmetric pair guarantees **structural reversibility**: inserting and then removing the same element leaves the list in its original state.
+
+Strategies can be changed at any time:
+
+```java
+list.setCurrentGrowingStrategy(ChunkyList.GrowingStrategy.EXTEND_STRATEGY);
+list.setCurrentShrinkingStrategy(ChunkyList.ShrinkingStrategy.DISAPPEAR_STRATEGY);
+```
+
+---
+
+## Usage
+
+### Basic usage
+
+```java
+ChunkyList<String> list = new ChunkyList<>();
+list.add("Hello");
+list.add("World");
+System.out.println(list.get(0)); // Hello
+```
+
+### Custom chunk size
+
+```java
+ChunkyList<Integer> list = new ChunkyList<>(50);
+```
+
+### From an existing collection
+
+```java
+List<String> source = List.of("a", "b", "c");
+ChunkyList<String> list = new ChunkyList<>(source);
+```
+
+### Copy constructors
+
+```java
+// Faithful copy (preserves chunk size and strategies)
+ChunkyList<String> copy = new ChunkyList<>(original);
+
+// Copy with a different chunk size (chunks that fit are preserved as-is;
+// chunks exceeding the new size are split using the GrowingStrategy)
+ChunkyList<String> resized = new ChunkyList<>(25, original);
+```
+
+### Streams
+
+```java
+// Sequential
+list.stream()
+    .filter(s -> s.startsWith("A"))
+    .forEach(System.out::println);
+
+// Parallel (uses native Spliterator that splits by chunk)
+list.parallelStream()
+    .map(String::toUpperCase)
+    .collect(Collectors.toList());
+```
+
+### Reorganize
+
+After many removals, chunks may become sparsely filled. `reorganize()` redistributes all elements into full chunks of `chunkSize`, without changing their order:
+
+```java
+list.reorganize();
+```
+
+---
+
+## Thread safety
+
+`ChunkyList` is **not thread-safe**. If multiple threads access an instance concurrently and at least one modifies it structurally, it must be synchronized externally:
+
+```java
+List<String> safeList = Collections.synchronizedList(new ChunkyList<>());
+```
+
+A `SynchronizedChunkyList` wrapper is planned for a future release.
+
+---
+
+## Requirements
+
+- Java 9 or later
+
+---
+
+## License
+
+LGPL v3
