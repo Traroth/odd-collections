@@ -1,5 +1,21 @@
-package fr.dufrenoy.util;
-
+package fr.dufrenoy.util;/*
+ * ChunkyList - An unrolled linked list implementation of java.util.List
+ * Copyright (C) 2026  Dufrenoy
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, see
+ * <https://www.gnu.org/licenses/>.
+ */
 import java.util.*;
 
 /**
@@ -78,13 +94,96 @@ public class ChunkyList<E> extends AbstractList<E> {
     }
 
     public ChunkyList(int chunkSize) {
+        if (chunkSize < 1) throw new IllegalArgumentException("chunkSize must be at least 1");
         this.chunkSize = chunkSize;
         this.size = 0;
         this.currentGrowingStrategy = GrowingStrategy.OVERFLOW_STRATEGY;
         this.currentShrinkingStrategy = ShrinkingStrategy.UNDERFLOW_STRATEGY;
     }
 
+    /**
+     * Creates a faithful copy of the given {@code ChunkyList}, preserving
+     * its chunk size (not the default chunk size), both strategies, and the
+     * internal chunk structure.
+     */
+    public ChunkyList(ChunkyList<? extends E> other) {
+        this(other.chunkSize);
+        this.currentGrowingStrategy = other.currentGrowingStrategy;
+        this.currentShrinkingStrategy = other.currentShrinkingStrategy;
+        @SuppressWarnings("unchecked")
+        ChunkyList<E> src = (ChunkyList<E>) other;
+        Chunk current = src.firstChunk;
+        while (current != null) {
+            Chunk newChunk = current.copy();
+            if (firstChunk == null) {
+                firstChunk = newChunk;
+            } else {
+                lastChunk.nextChunk = newChunk;
+                newChunk.previousChunk = lastChunk;
+            }
+            lastChunk = newChunk;
+            size += current.nbElements;
+            current = current != src.lastChunk ? current.nextChunk : null;
+        }
+    }
+
+    /**
+     * Creates a copy of the given {@code ChunkyList} with a different chunk size,
+     * preserving both strategies. Chunks whose number of elements does not exceed
+     * the new chunk size are copied as-is. Chunks that exceed the new chunk size
+     * are split according to the current {@link GrowingStrategy}.
+     */
+    public ChunkyList(int chunkSize, ChunkyList<? extends E> other) {
+        this(chunkSize);
+        this.currentGrowingStrategy = other.currentGrowingStrategy;
+        this.currentShrinkingStrategy = other.currentShrinkingStrategy;
+        @SuppressWarnings("unchecked")
+        ChunkyList<E> src = (ChunkyList<E>) other;
+        Chunk current = src.firstChunk;
+        while (current != null) {
+            if (current.nbElements <= chunkSize) {
+                // Chunk fits: copy it as-is
+                Chunk newChunk = current.copy();
+                if (firstChunk == null) {
+                    firstChunk = newChunk;
+                } else {
+                    lastChunk.nextChunk = newChunk;
+                    newChunk.previousChunk = lastChunk;
+                }
+                lastChunk = newChunk;
+                size += current.nbElements;
+            } else {
+                // Chunk exceeds new chunkSize: add element by element via GrowingStrategy
+                for (int i = 0; i < current.nbElements; i++) {
+                    add(current.elements[i]);
+                }
+            }
+            current = current != src.lastChunk ? current.nextChunk : null;
+        }
+    }
+
+    /**
+     * Creates a new {@code ChunkyList} with the default chunk size containing
+     * all elements of the given collection, in the order returned by its iterator.
+     */
+    public ChunkyList(Collection<? extends E> c) {
+        this(DEFAULT_CHUNK_SIZE, c);
+    }
+
+    /**
+     * Creates a new {@code ChunkyList} with the given chunk size containing
+     * all elements of the given collection, in the order returned by its iterator.
+     */
+    public ChunkyList(int chunkSize, Collection<? extends E> c) {
+        this(chunkSize);
+        for (E e : c) add(e);
+    }
+
     // ─── Accessors ────────────────────────────────────────────────────────────
+
+    public int getChunkSize() {
+        return chunkSize;
+    }
 
     public GrowingStrategy getCurrentGrowingStrategy() {
         return currentGrowingStrategy;
@@ -293,6 +392,43 @@ public class ChunkyList<E> extends AbstractList<E> {
         return removed;
     }
 
+    /**
+     * Reorganizes the list by redistributing all elements into chunks of
+     * exactly {@code chunkSize} elements (except possibly the last one).
+     * The order of elements is preserved.
+     *
+     * <p>This is useful after many removals have left chunks sparsely filled.
+     */
+    public void reorganize() {
+        if (isEmpty()) return;
+        Chunk newFirst = null;
+        Chunk newLast = null;
+        Chunk current = firstChunk;
+        int srcIndex = 0;
+        while (current != null) {
+            // Allocate a new chunk
+            Chunk newChunk = new Chunk(chunkSize);
+            if (newFirst == null) {
+                newFirst = newChunk;
+            } else {
+                newLast.nextChunk = newChunk;
+                newChunk.previousChunk = newLast;
+            }
+            newLast = newChunk;
+            // Fill the new chunk
+            while (newChunk.nbElements < chunkSize && current != null) {
+                newChunk.elements[newChunk.nbElements++] = current.elements[srcIndex++];
+                if (srcIndex >= current.nbElements) {
+                    current = current.nextChunk;
+                    srcIndex = 0;
+                }
+            }
+        }
+        firstChunk = newFirst;
+        lastChunk = newLast;
+        modCount++;
+    }
+
     @Override
     public void clear() {
         firstChunk = null;
@@ -367,11 +503,19 @@ public class ChunkyList<E> extends AbstractList<E> {
             case OVERFLOW_STRATEGY:
                 Chunk next = chunk.nextChunk != null
                         ? chunk.nextChunk : addEmptyChunkAfter(chunk);
-                System.arraycopy(next.elements, 0, next.elements, 1, next.nbElements);
-                next.elements[0] = overflow;
-                next.nbElements++;
-                size++;
-                modCount++;
+                if (next.nbElements < chunkSize) {
+                    System.arraycopy(next.elements, 0, next.elements, 1, next.nbElements);
+                    next.elements[0] = overflow;
+                    next.nbElements++;
+                    size++;
+                    modCount++;
+                } else {
+                    // Next chunk is also full: save its last element, shift, insert, recurse
+                    E nextOverflow = next.elements[next.nbElements - 1];
+                    System.arraycopy(next.elements, 0, next.elements, 1, next.nbElements - 1);
+                    next.elements[0] = overflow;
+                    handleFullChunk(next, nextOverflow);
+                }
                 break;
         }
     }
@@ -411,6 +555,7 @@ public class ChunkyList<E> extends AbstractList<E> {
                                      chunk.nextChunk.elements, 0,
                                      chunk.nextChunk.nbElements - 1);
                     chunk.nextChunk.elements[--chunk.nextChunk.nbElements] = null;
+                    handleShrunkChunk(chunk.nextChunk);
                 }
                 if (chunk.nbElements == 0) removeChunk(chunk);
                 break;
@@ -528,6 +673,13 @@ public class ChunkyList<E> extends AbstractList<E> {
         private Chunk(int chunkSize) {
             this.elements = (E[]) new Object[chunkSize];
             this.nbElements = 0;
+        }
+
+        private Chunk copy() {
+            Chunk newChunk = new Chunk(chunkSize);
+            System.arraycopy(elements, 0, newChunk.elements, 0, nbElements);
+            newChunk.nbElements = nbElements;
+            return newChunk;
         }
 
         private Chunk getPreviousChunk() {

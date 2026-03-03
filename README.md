@@ -31,6 +31,7 @@ This structure offers a middle ground between `ArrayList` and `LinkedList`:
 - Native **`Spliterator`** for efficient `stream()` and `parallelStream()` support
 - Fail-fast iterators via `modCount`
 - Copy constructors and collection constructors
+- `reorganize()` to compact sparsely filled chunks
 
 ---
 
@@ -93,6 +94,11 @@ List<String> source = List.of("a", "b", "c");
 ChunkyList<String> list = new ChunkyList<>(source);
 ```
 
+```java
+// With a custom chunk size
+ChunkyList<String> list2 = new ChunkyList<>(10, source);
+```
+
 ### Copy constructors
 
 ```java
@@ -120,7 +126,7 @@ list.parallelStream()
 
 ### Reorganize
 
-After many removals, chunks may become sparsely filled. `reorganize()` redistributes all elements into full chunks of `chunkSize`, without changing their order:
+After many removals, chunks may become sparsely filled. `reorganize()` redistributes all elements into chunks of `chunkSize` elements (except possibly the last one), without changing their order:
 
 ```java
 list.reorganize();
