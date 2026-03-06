@@ -2,8 +2,6 @@
 
 A Java implementation of an **unrolled linked list** — a hybrid data structure that combines the memory locality of arrays with the dynamic resizing of linked lists.
 
-`ChunkyList<E>` extends `AbstractList<E>` and fully implements the `java.util.List` contract.
-
 ---
 
 ## How it works
@@ -23,13 +21,26 @@ This structure offers a middle ground between `ArrayList` and `LinkedList`:
 
 ---
 
+## Architecture
+
+The library is organized around a central interface and two implementations:
+
+| Type | Role |
+|---|---|
+| `ChunkyList<E>` | Interface extending `java.util.List`, exposing chunk-specific configuration |
+| `UnsynchronizedChunkyList<E>` | Standard implementation — not thread-safe, fail-fast iterators |
+| `SynchronizedChunkyList<E>` | Thread-safe implementation backed by a `ReentrantReadWriteLock` |
+
+---
+
 ## Features
 
 - Full `java.util.List` implementation (`get`, `set`, `add`, `remove`, `indexOf`, `lastIndexOf`, `contains`, `clear`, ...)
 - Configurable **chunk size** (default: 100)
 - Pluggable **growing and shrinking strategies**, swappable at runtime
+- Atomic **`setStrategies()`** to change both strategies simultaneously without risk of inconsistent intermediate state
 - Native **`Spliterator`** for efficient `stream()` and `parallelStream()` support
-- Fail-fast iterators via `modCount`
+- Fail-fast iterators (`UnsynchronizedChunkyList`) and fail-safe snapshot iterators (`SynchronizedChunkyList`)
 - Copy constructors and collection constructors
 - `reorganize()` to compact sparsely filled chunks
 
@@ -66,6 +77,10 @@ Strategies can be changed at any time:
 ```java
 list.setCurrentGrowingStrategy(ChunkyList.GrowingStrategy.EXTEND_STRATEGY);
 list.setCurrentShrinkingStrategy(ChunkyList.ShrinkingStrategy.DISAPPEAR_STRATEGY);
+
+// Or atomically:
+list.setStrategies(ChunkyList.GrowingStrategy.EXTEND_STRATEGY,
+                   ChunkyList.ShrinkingStrategy.DISAPPEAR_STRATEGY);
 ```
 
 ---
@@ -75,7 +90,7 @@ list.setCurrentShrinkingStrategy(ChunkyList.ShrinkingStrategy.DISAPPEAR_STRATEGY
 ### Basic usage
 
 ```java
-ChunkyList<String> list = new ChunkyList<>();
+ChunkyList<String> list = new UnsynchronizedChunkyList<>();
 list.add("Hello");
 list.add("World");
 System.out.println(list.get(0)); // Hello
@@ -84,30 +99,28 @@ System.out.println(list.get(0)); // Hello
 ### Custom chunk size
 
 ```java
-ChunkyList<Integer> list = new ChunkyList<>(50);
+ChunkyList<Integer> list = new UnsynchronizedChunkyList<>(50);
 ```
 
 ### From an existing collection
 
 ```java
 List<String> source = List.of("a", "b", "c");
-ChunkyList<String> list = new ChunkyList<>(source);
-```
+ChunkyList<String> list = new UnsynchronizedChunkyList<>(source);
 
-```java
 // With a custom chunk size
-ChunkyList<String> list2 = new ChunkyList<>(10, source);
+ChunkyList<String> list2 = new UnsynchronizedChunkyList<>(10, source);
 ```
 
 ### Copy constructors
 
 ```java
 // Faithful copy (preserves chunk size and strategies)
-ChunkyList<String> copy = new ChunkyList<>(original);
+UnsynchronizedChunkyList<String> copy = new UnsynchronizedChunkyList<>(original);
 
 // Copy with a different chunk size (chunks that fit are preserved as-is;
 // chunks exceeding the new size are split using the GrowingStrategy)
-ChunkyList<String> resized = new ChunkyList<>(25, original);
+UnsynchronizedChunkyList<String> resized = new UnsynchronizedChunkyList<>(25, original);
 ```
 
 ### Streams
@@ -136,13 +149,40 @@ list.reorganize();
 
 ## Thread safety
 
-`ChunkyList` is **not thread-safe**. If multiple threads access an instance concurrently and at least one modifies it structurally, it must be synchronized externally:
+`UnsynchronizedChunkyList` is **not thread-safe**. If multiple threads access an instance concurrently and at least one modifies it structurally, it must be synchronized externally:
 
 ```java
-List<String> safeList = Collections.synchronizedList(new ChunkyList<>());
+List<String> safeList = Collections.synchronizedList(new UnsynchronizedChunkyList<>());
 ```
 
-A `SynchronizedChunkyList` wrapper is planned for a future release.
+For better performance, use `SynchronizedChunkyList`, which is backed by a `ReentrantReadWriteLock`: multiple threads may read concurrently, while writes are exclusive.
+
+```java
+ChunkyList<String> list = new SynchronizedChunkyList<>();
+list.add("Hello");
+list.add("World");
+```
+
+### Iterators and streams
+
+Iterators, list iterators, spliterators, and streams on a `SynchronizedChunkyList` operate on a **snapshot** of the list taken at the time of the call. Subsequent modifications are not reflected in the snapshot.
+
+> **Memory note:** snapshot-based operations copy the entire list. Avoid calling them on very large lists in memory-constrained environments.
+
+### reorganize()
+
+`SynchronizedChunkyList` provides two variants of `reorganize()`:
+
+```java
+// Blocking (default): holds the write lock for the full duration
+list.reorganize();
+list.reorganize(true);
+
+// Non-blocking: takes a snapshot, reorganizes without a lock,
+// then swaps the result in under a write lock.
+// Warning: modifications made between the snapshot and the swap are silently lost.
+list.reorganize(false);
+```
 
 ---
 
