@@ -5,26 +5,18 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>fr.dufrenoy.util</groupId>
-  <artifactId>chunky-list</artifactId>
+  <artifactId>odd-collections</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
-  <name>Chunky-List</name>
+  <name>odd-collections</name>
   <description>A Java unrolled linked list implementation.</description>
-  <url>https://github.com/Traroth/Chunky-List</url>
+  <url>https://github.com/Traroth/odd-collectionst</url>
 
   <properties>
     <maven.compiler.release>9</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
-
-  <distributionManagement>
-    <repository>
-      <id>github</id>
-      <name>GitHub Traroth Apache Maven Packages</name>
-      <url>https://maven.pkg.github.com/Traroth/Chunky-List</url>
-    </repository>
-  </distributionManagement>
 
   <dependencies>
     <dependency>
