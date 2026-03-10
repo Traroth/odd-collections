@@ -17,8 +17,6 @@ package fr.dufrenoy.util;
  * License along with this library; if not, see
  * <https://www.gnu.org/licenses/>.
  */
-import static fr.dufrenoy.util.ChunkyList.GrowingStrategy;
-import static fr.dufrenoy.util.ChunkyList.ShrinkingStrategy;
 import java.util.*;
 
 /**
