@@ -131,6 +131,12 @@ list.reorganize(false);
 
 - Java 9 or later
 
+This library is packaged as a named module (`fr.dufrenoy.util`). To use it as a dependency in a modular project, add the following to your `module-info.java`:
+
+```java
+requires fr.dufrenoy.util;
+```
+
 ---
 
 ## License

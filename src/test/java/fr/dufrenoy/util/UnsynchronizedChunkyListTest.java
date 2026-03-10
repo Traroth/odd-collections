@@ -5,7 +5,6 @@ import static fr.dufrenoy.util.ChunkyList.ShrinkingStrategy;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
-import java.lang.reflect.Field;
 
 /**
  * Tests COMPLETS spécifiques à l'implémentation UnsynchronizedChunkyList.
@@ -18,10 +17,10 @@ public class UnsynchronizedChunkyListTest {
         UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(2);
         list.add("A");
         list.add("B");
-        list.add("C"); // Devrait créer 2 chunks
+        list.add("C");
 
         assertEquals(3, list.size());
-        assertEquals(2, countChunks(list));
+        assertEquals(2, list.countChunks());
     }
 
     @Test
@@ -32,7 +31,7 @@ public class UnsynchronizedChunkyListTest {
         }
 
         assertEquals(250, list.size());
-        assertEquals(3, countChunks(list)); // 250/100 = 2.5 → 3 chunks
+        assertEquals(3, list.countChunks());
     }
 
     @Test
@@ -41,14 +40,12 @@ public class UnsynchronizedChunkyListTest {
         for (int i = 0; i < 10; i++) {
             list.add("Item" + i);
         }
-        // Supprime des éléments pour créer des chunks partiellement remplis
         list.remove(5);
         list.remove(3);
         list.remove(1);
 
         assertEquals(7, list.size());
-        // Vérifie que la structure est toujours cohérente
-        assertTrue(countChunks(list) >= 2);
+        assertTrue(list.countChunks() >= 2);
     }
 
     // ===== Tests des stratégies =====
@@ -58,10 +55,10 @@ public class UnsynchronizedChunkyListTest {
         list.setCurrentGrowingStrategy(GrowingStrategy.OVERFLOW_STRATEGY);
         list.add("A");
         list.add("B");
-        list.add("C"); // Devrait déclencher la stratégie OVERFLOW
+        list.add("C");
 
         assertEquals(3, list.size());
-        assertEquals(2, countChunks(list)); // 2 chunks: [A,B], [C]
+        assertEquals(2, list.countChunks());
     }
 
     @Test
@@ -70,10 +67,10 @@ public class UnsynchronizedChunkyListTest {
         list.setCurrentGrowingStrategy(GrowingStrategy.EXTEND_STRATEGY);
         list.add("A");
         list.add("B");
-        list.add("C"); // Devrait déclencher la stratégie EXTEND
+        list.add("C");
 
         assertEquals(3, list.size());
-        assertEquals(2, countChunks(list)); // 2 chunks: [A,B], [C]
+        assertEquals(2, list.countChunks());
     }
 
     @Test
@@ -83,10 +80,10 @@ public class UnsynchronizedChunkyListTest {
         list.add("A");
         list.add("B");
         list.add("C");
-        list.remove(0); // Devrait déclencher la stratégie UNDERFLOW
+        list.remove(0);
 
         assertEquals(2, list.size());
-        assertEquals(1, countChunks(list)); // 1 chunk: [B,C]
+        assertEquals(1, list.countChunks());
     }
 
     @Test
@@ -97,10 +94,10 @@ public class UnsynchronizedChunkyListTest {
         list.add("B");
         list.add("C");
         list.remove(0);
-        list.remove(0); // Devrait déclencher la stratégie DISAPPEAR
+        list.remove(0);
 
         assertEquals(1, list.size());
-        assertEquals(1, countChunks(list)); // 1 chunk: [C]
+        assertEquals(1, list.countChunks());
     }
 
     // ===== Tests de reorganize =====
@@ -110,17 +107,16 @@ public class UnsynchronizedChunkyListTest {
         for (int i = 0; i < 10; i++) {
             list.add("Item" + i);
         }
-        // Crée des trous
         list.remove(5);
         list.remove(3);
         list.remove(1);
 
-        int chunksBefore = countChunks(list);
+        int chunksBefore = list.countChunks();
         list.reorganize();
-        int chunksAfter = countChunks(list);
+        int chunksAfter = list.countChunks();
 
         assertEquals(7, list.size());
-        assertTrue(chunksAfter <= chunksBefore); // Doit optimiser le nombre de chunks
+        assertTrue(chunksAfter <= chunksBefore);
     }
 
     @Test
@@ -203,7 +199,6 @@ public class UnsynchronizedChunkyListTest {
         original.add("B");
         original.add("C");
         original.add("D");
-        // 2 chunks: [A,B], [C,D]
 
         UnsynchronizedChunkyList<String> copy = new UnsynchronizedChunkyList<>(4, original);
 
@@ -212,8 +207,7 @@ public class UnsynchronizedChunkyListTest {
         assertEquals("B", copy.get(1));
         assertEquals("C", copy.get(2));
         assertEquals("D", copy.get(3));
-        // Les deux chunks rentrent dans chunkSize=4, copiés as-is → 2 chunks
-        assertEquals(2, countChunks(copy));
+        assertEquals(2, copy.countChunks());
     }
 
     @Test
@@ -223,7 +217,6 @@ public class UnsynchronizedChunkyListTest {
         original.add("B");
         original.add("C");
         original.add("D");
-        // 1 chunk: [A,B,C,D]
 
         UnsynchronizedChunkyList<String> copy = new UnsynchronizedChunkyList<>(2, original);
         copy.setCurrentGrowingStrategy(GrowingStrategy.OVERFLOW_STRATEGY);
@@ -233,8 +226,7 @@ public class UnsynchronizedChunkyListTest {
         assertEquals("B", copy.get(1));
         assertEquals("C", copy.get(2));
         assertEquals("D", copy.get(3));
-        // 4 éléments dans des chunks de 2 → 2 chunks
-        assertEquals(2, countChunks(copy));
+        assertEquals(2, copy.countChunks());
     }
 
     @Test
@@ -244,7 +236,6 @@ public class UnsynchronizedChunkyListTest {
         original.add("B");
         original.add("C");
         original.add("D");
-        // 1 chunk: [A,B,C,D]
 
         UnsynchronizedChunkyList<String> copy = new UnsynchronizedChunkyList<>(2, original);
         copy.setCurrentGrowingStrategy(GrowingStrategy.EXTEND_STRATEGY);
@@ -254,7 +245,7 @@ public class UnsynchronizedChunkyListTest {
         assertEquals("B", copy.get(1));
         assertEquals("C", copy.get(2));
         assertEquals("D", copy.get(3));
-        assertEquals(2, countChunks(copy));
+        assertEquals(2, copy.countChunks());
     }
 
     @Test
@@ -263,10 +254,9 @@ public class UnsynchronizedChunkyListTest {
         original.add("A");
         original.add("B");
         original.add("C");
-        original.add("D"); // chunk plein [A,B,C,D]
-        original.add("E"); // nouveau chunk [E]
+        original.add("D");
+        original.add("E");
 
-        // chunkSize=2 : le premier chunk dépasse, le second rentre
         UnsynchronizedChunkyList<String> copy = new UnsynchronizedChunkyList<>(2, original);
 
         assertEquals(5, copy.size());
@@ -286,28 +276,5 @@ public class UnsynchronizedChunkyListTest {
 
         assertEquals(GrowingStrategy.EXTEND_STRATEGY, copy.getCurrentGrowingStrategy());
         assertEquals(ShrinkingStrategy.DISAPPEAR_STRATEGY, copy.getCurrentShrinkingStrategy());
-    }
-
-    // ===== Méthode utilitaire =====
-    private int countChunks(UnsynchronizedChunkyList<?> list) {
-        try {
-            Field firstChunkField = UnsynchronizedChunkyList.class.getDeclaredField("firstChunk");
-            firstChunkField.setAccessible(true);
-            Object firstChunk = firstChunkField.get(list);
-
-            if (firstChunk == null) return 0;
-
-            int count = 0;
-            Object current = firstChunk;
-            while (current != null) {
-                count++;
-                Field nextChunkField = current.getClass().getDeclaredField("nextChunk");
-                nextChunkField.setAccessible(true);
-                current = nextChunkField.get(current);
-            }
-            return count;
-        } catch (Exception e) {
-            throw new RuntimeException("Impossible de compter les chunks", e);
-        }
     }
 }

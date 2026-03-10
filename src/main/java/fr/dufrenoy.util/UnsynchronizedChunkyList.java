@@ -521,6 +521,21 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
         }
     }
 
+    /**
+     * Returns the number of chunks in this list.
+     *
+     * <p>This method is package-private and intended for testing purposes only.
+     */
+    int countChunks() {
+        int count = 0;
+        Chunk current = firstChunk;
+        while (current != null) {
+            count++;
+            current = current != lastChunk ? current.nextChunk : null;
+        }
+        return count;
+    }
+
     @Override
     public Spliterator<E> spliterator() {
         return new ChunkSpliterator(firstChunk, null, size);

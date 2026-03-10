@@ -10,8 +10,8 @@
   <packaging>jar</packaging>
 
   <name>odd-collections</name>
-  <description>A Java unrolled linked list implementation.</description>
-  <url>https://github.com/Traroth/odd-collectionst</url>
+  <description>A collection of unconventional Java data structures.</description>
+  <url>https://github.com/Traroth/odd-collections</url>
 
   <properties>
     <maven.compiler.release>9</maven.compiler.release>
@@ -47,6 +47,9 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.1.2</version>
+        <configuration>
+          <useModulePath>false</useModulePath>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
