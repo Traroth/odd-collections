@@ -11,6 +11,18 @@ before generating or modifying any code.
 - `.dev/backlog/BACKLOG.md` — pending tasks and known issues for all classes
 - `.dev/design/ARCHITECTURE.md` — key design decisions and rationale for each class
 
+## Skills
+
+Skills encode recurring workflows. Read the relevant skill file before starting
+the corresponding task.
+
+| Task                                        | Skill                                      |
+|---------------------------------------------|--------------------------------------------|
+| Generate or significantly modify a class    | `.dev/skills/static-analysis/SKILL.md`     |
+| Create a new class                          | `.dev/skills/new-class/SKILL.md`           |
+| End of session                              | `.dev/skills/update-backlog/SKILL.md`      |
+| End of session (if API or roadmap changed)  | `.dev/skills/update-readme/SKILL.md`       |
+
 ## Project overview
 
 `odd-collections` is a Java library of unconventional data structures. It is
@@ -42,4 +54,13 @@ src/
     BACKLOG.md
   design/
     ARCHITECTURE.md
+  skills/
+    static-analysis/
+      SKILL.md
+    new-class/
+      SKILL.md
+    update-backlog/
+      SKILL.md
+    update-readme/
+      SKILL.md
 ```
