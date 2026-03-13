@@ -117,3 +117,99 @@ For each class `Foo`, create:
 - White-box tests must document why they target a specific internal point
 - Systematically cover: nominal case, boundary cases (null, empty, single
   element), error cases (expected exception)
+
+---
+
+## 5. Null handling
+
+Prefer `Optional<T>` over `null` as a return type, except in the following
+cases:
+
+- **Interface contracts** — never change the return type of a method imposed
+  by an interface (e.g. `Map.get()` must return `null`, not `Optional<V>`)
+- **Method parameters** — never use `Optional` as a parameter type
+- **Instance fields** — `Optional` is not `Serializable` and adds memory
+  overhead; use `null` for optional fields
+- **Collections** — never use `Optional<Collection<T>>`; return an empty
+  collection instead
+
+In all other cases, methods whose return value may be absent must return
+`Optional<T>` rather than a nullable type. This makes the contract explicit
+in the method signature and prevents silent `NullPointerException`s.
+
+When a method is constrained by an interface to return `null`, this must be
+documented in its Javadoc with `@return ... or {@code null} if not found`.
+
+---
+
+## 6. Versioning
+
+The version in each source file header must match the project version in
+`pom.xml`. When the project version is bumped, all file headers must be
+updated accordingly.
+
+Project versioning follows **Semantic Versioning** (semver):
+
+- **Patch (x.y.Z)** — bug fix, Javadoc improvement, internal refactoring with
+  no behavioral change
+- **Minor (x.Y.0)** — new public method, new feature, backward-compatible change
+- **Major (X.0.0)** — method signature change, method removal, breaking change
+
+---
+
+## 7. Static analysis
+
+### Claude-assisted analysis
+
+After every class generation or significant modification, explicitly ask Claude
+to perform a static analysis of the produced code. Claude will report issues
+classified by severity:
+
+- **Critical** — bugs, contract violations, broken invariants
+- **Major** — performance issues, missing null checks, unclear semantics
+- **Minor** — style issues, Javadoc gaps, guideline violations
+
+Claude also verifies that all of the following are written in English:
+- Comments and Javadoc
+- Class, method, field, and variable names
+- Exception messages
+- Log messages
+
+This analysis is probabilistic, not formal — it complements but does not
+replace automated tools.
+
+### Automated tools (Maven)
+
+The following tools are part of the recommended build pipeline and run
+automatically with Maven:
+
+**Checkstyle** — enforces coding style and Oracle guideline compliance:
+```xml
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-checkstyle-plugin</artifactId>
+  <version>3.3.1</version>
+</plugin>
+```
+
+**SpotBugs** — detects bug patterns and potential runtime errors:
+```xml
+<plugin>
+  <groupId>com.github.spotbugs</groupId>
+  <artifactId>spotbugs-maven-plugin</artifactId>
+  <version>4.8.3</version>
+</plugin>
+```
+
+### Division of responsibilities
+
+| Concern                        | Claude | Checkstyle | SpotBugs | JaCoCo |
+|-------------------------------|--------|------------|----------|--------|
+| Logic bugs and invariants     | ✓      |            | ✓        |        |
+| Contract violations           | ✓      |            |          |        |
+| Code style and guidelines     | ✓      | ✓          |          |        |
+| Null pointer risks            | ✓      |            | ✓        |        |
+| Performance (algorithmic)     | ✓      |            |          |        |
+| Security vulnerabilities      |        |            | ✓        |        |
+| English language              | ✓      |            |          |        |
+| Code coverage                 |        |            |          | ✓      |
