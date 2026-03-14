@@ -19,22 +19,36 @@ of each session.
 
 ## SymmetricMap
 
+- [ ] Extract `SymmetricMap<K, V>` as an interface
+- [ ] Rename current `SymmetricMap` to `UnsynchronizedSymmetricMap`
+- [ ] Implement `SynchronizedSymmetricMap`
 - [ ] Implement `setValue()` on `Entry` in a way that maintains bijectivity,
   which will allow removing the manual overrides of `replace`, `replaceAll`,
   `merge`, `compute`, `computeIfPresent` and delegating to `AbstractMap`
 - [ ] Change `getKey()` and `removeByValue()` return types to `Optional`
   (per null handling rules in `JAVA_STANDARDS.md`)
-- [ ] Create `SymmetricMapBlackBoxTest`
-- [ ] Create `SymmetricMapWhiteBoxTest`
+- [ ] Create `MockSymmetricMap`
+- [ ] Create `SymmetricMapTest`
+- [ ] Create `UnsynchronizedSymmetricMapBlackBoxTest` (rename from current
+  `SymmetricMapBlackBoxTest`, update class name inside)
+- [ ] Create `UnsynchronizedSymmetricMapWhiteBoxTest`
+- [ ] Create `SynchronizedSymmetricMapBlackBoxTest`
+- [ ] Create `SynchronizedSymmetricMapWhiteBoxTest`
 
 ---
 
 ## ChunkyList
 
-- [ ] Bring into compliance with Oracle Java guidelines (beginning file comment,
-  `package`/comment order, explicit imports)
-- [ ] Create `ChunkyListBlackBoxTest`
-- [ ] Create `ChunkyListWhiteBoxTest`
+- [ ] Bring `ChunkyList` interface into compliance with Oracle Java guidelines
+  (beginning file comment, `package`/comment order, explicit imports)
+- [ ] Create `ChunkyListBlackBoxTest` (rename existing `ChunkyListTest` —
+  verify scope and rename accordingly)
+- [ ] Create `UnsynchronizedChunkyListBlackBoxTest` (rename from current
+  `UnsynchronizedChunkyListTest`, update class name inside)
+- [ ] Create `UnsynchronizedChunkyListWhiteBoxTest`
+- [ ] Create `SynchronizedChunkyListBlackBoxTest` (rename from current
+  `SynchronizedChunkyListTest`, update class name inside)
+- [ ] Create `SynchronizedChunkyListWhiteBoxTest`
 
 ---
 
@@ -57,3 +71,8 @@ of each session.
   `computeIfPresent()` via `put()` and `remove()`
 - [x] Oracle Java guidelines compliance
 - [x] Fix bug in `put()` for identical key-value pair
+
+### Project-wide
+- [x] Formalize AI workflow: `CONTEXT.md`, `WORKFLOW.md`, `JAVA_STANDARDS.md`,
+  `ARCHITECTURE.md`, skills (`static-analysis`, `new-class`, `update-backlog`,
+  `update-readme`)

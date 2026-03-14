@@ -10,6 +10,8 @@ before generating or modifying any code.
   all Java code in this project
 - `.dev/backlog/BACKLOG.md` — pending tasks and known issues for all classes
 - `.dev/design/ARCHITECTURE.md` — key design decisions and rationale for each class
+- `.dev/WORKFLOW.md` — required order of operations for any class creation or
+  modification
 
 ## Skills
 
@@ -48,6 +50,7 @@ src/
   test/java/fr/dufrenoy/util/
 .dev/
   CONTEXT.md
+  WORKFLOW.md
   standards/
     JAVA_STANDARDS.md
   backlog/

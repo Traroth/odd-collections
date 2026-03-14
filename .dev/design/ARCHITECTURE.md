@@ -109,12 +109,33 @@ range in half, enabling efficient parallel streams.
 
 ## SymmetricMap
 
+### Interface + two implementations rather than a single class
+
+`SymmetricMap<K, V>` is defined as an interface extending `Map<K, V>`, with
+two concrete implementations: `UnsynchronizedSymmetricMap` and
+`SynchronizedSymmetricMap`.
+
+The interface declares the full symmetric contract:
+- `getKey(Object value)` — reverse lookup
+- `safePut(K key, V value)` — strict insertion
+- `removeByValue(Object value)` — reverse removal
+- `inverse()` — covariant return (see below)
+- `values()` — overridden to return `Set<V>`
+
+**Alternative considered:** a single class with an optional locking flag.
+
+**Reason for rejection:** same rationale as `ChunkyList` — the thread-safety
+contract should be explicit in the type system, not hidden behind a runtime
+flag.
+
+---
+
 ### Single bucket array with two collision chains rather than two maps
 
-`SymmetricMap<K, V>` is backed by a single array of `Bucket`s. Each `Bucket`
-holds two independent linked lists of `Entry` objects: one chained by key hash
-(`firstByKey`), one chained by value hash (`firstByValue`). Each `Entry`
-belongs to both chains simultaneously.
+`UnsynchronizedSymmetricMap<K, V>` is backed by a single array of `Bucket`s.
+Each `Bucket` holds two independent linked lists of `Entry` objects: one
+chained by key hash (`firstByKey`), one chained by value hash
+(`firstByValue`). Each `Entry` belongs to both chains simultaneously.
 
 **Alternative considered:** two separate `HashMap`s — one mapping keys to
 values, one mapping values to keys — kept in sync on every mutation.
@@ -143,13 +164,18 @@ guarantee the absence of collisions. The naming makes the intent explicit.
 
 ---
 
-### `inverse()` returns an independent copy rather than a live view
+### `inverse()` — covariant return type, same thread-safety as the caller
 
-`inverse()` returns a new `SymmetricMap<V, K>` with keys and values swapped,
-independent of the original map.
+`inverse()` is declared in the `SymmetricMap` interface with a return type of
+`SymmetricMap<V, K>`. Each implementation overrides it with a covariant return:
+- `UnsynchronizedSymmetricMap.inverse()` returns `UnsynchronizedSymmetricMap<V, K>`
+- `SynchronizedSymmetricMap.inverse()` returns `SynchronizedSymmetricMap<V, K>`
 
-**Alternative considered:** a live view, as Guava's `BiMap.inverse()` does,
-where modifications to the view are reflected in the original and vice versa.
+In both cases, the returned map is an independent copy — modifications to the
+inverse do not affect the original, and vice versa. In `SynchronizedSymmetricMap`,
+the copy is taken under a read lock to guarantee a consistent snapshot.
+
+**Alternative considered:** a live view, as Guava's `BiMap.inverse()` does.
 
 **Reason for rejection:** a live view requires either a dedicated inverse class
 or an `isInverse` flag that every method must check, significantly complicating
@@ -169,15 +195,16 @@ instead of `Collection<V>`.
 they form a set, not merely a collection. Returning `Set<V>` expresses this
 invariant in the type system and is consistent with Guava's `BiMap.values()`.
 This is a valid covariant return type override in Java, since `Set` extends
-`Collection`.
+`Collection`. The covariant return is declared in the `SymmetricMap` interface
+and implemented in both concrete classes.
 
 ---
 
-### `extends AbstractMap` rather than `implements Map` directly
+### `extends AbstractMap` in `UnsynchronizedSymmetricMap`
 
-`SymmetricMap` extends `AbstractMap<K, V>`, which provides correct
-implementations of `equals()`, `hashCode()`, `toString()`, and several default
-methods based on `entrySet()`.
+`UnsynchronizedSymmetricMap` extends `AbstractMap<K, V>`, which provides
+correct implementations of `equals()`, `hashCode()`, `toString()`, and several
+default methods based on `entrySet()`.
 
 Methods where our implementation is more efficient than `AbstractMap`'s default
 (which iterates over `entrySet()`) are overridden: `containsKey()`,
@@ -189,3 +216,47 @@ Methods that use `setValue()` internally (`replace()`, `replaceAll()`,
 and `remove()` instead, since `Entry.setValue()` is not supported (it would
 bypass the bijectivity invariant). Implementing `setValue()` correctly is
 tracked in the backlog.
+
+`SynchronizedSymmetricMap` does not extend `AbstractMap` — it delegates all
+operations to its inner `UnsynchronizedSymmetricMap` and protects them with a
+`ReentrantReadWriteLock`.
+
+---
+
+### `ReentrantReadWriteLock` in `SynchronizedSymmetricMap`
+
+`SynchronizedSymmetricMap` uses a `ReentrantReadWriteLock` to protect all
+operations, following the same pattern as `SynchronizedChunkyList`.
+
+**Design rationale:** multiple concurrent readers are allowed; writes are
+exclusive. This is a significant performance advantage for read-heavy workloads
+over a single `synchronized` monitor.
+
+---
+
+### `replaceAll()` is fully atomic under write lock in `SynchronizedSymmetricMap`
+
+Unlike `reorganize()` in `SynchronizedChunkyList`, which offers a non-blocking
+snapshot mode, `replaceAll()` in `SynchronizedSymmetricMap` holds the write
+lock for its entire duration.
+
+**Reason:** `replaceAll()` on a bijective map is inherently sensitive — the
+remapping function may produce duplicate values, requiring conflicting entries
+to be removed. Allowing reads or writes to interleave during this operation
+could expose a transiently inconsistent state. The simpler, safer choice is to
+hold the write lock throughout.
+
+---
+
+### Snapshot-based iterators in `SynchronizedSymmetricMap`
+
+`iterator()` on `keySet()`, `values()`, and `entrySet()` in
+`SynchronizedSymmetricMap` operates on a snapshot taken under a read lock.
+
+**Alternative considered:** fail-fast iterators protected by the read lock for
+their entire duration.
+
+**Reason for rejection:** same rationale as `SynchronizedChunkyList` — holding
+a read lock for the full duration of an iteration blocks all writes for an
+unbounded time. Snapshot iterators allow writes to proceed concurrently, at
+the cost of copying the entry set. This cost is documented in the Javadoc.

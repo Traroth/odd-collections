@@ -14,14 +14,22 @@ description: >
 
 Read the following files in full:
 
-1. `.dev/standards/JAVA_STANDARDS.md` — coding standards (file header, imports,
+1. `.dev/WORKFLOW.md` — the required order of operations; follow it strictly
+2. `.dev/standards/JAVA_STANDARDS.md` — coding standards (file header, imports,
    declaration order, Javadoc, null handling, versioning)
-2. `.dev/design/ARCHITECTURE.md` — existing design decisions and rationale
-3. `.dev/backlog/BACKLOG.md` — pending tasks; check if this class is already listed
+3. `.dev/design/ARCHITECTURE.md` — existing design decisions and rationale
+4. `.dev/backlog/BACKLOG.md` — pending tasks; check if this class is already listed
 
 ---
 
 ## Procedure
+
+Follow the order defined in `.dev/WORKFLOW.md`:
+1. Update `ARCHITECTURE.md`
+2. Update `BACKLOG.md`
+3. Write production code (then run `static-analysis`)
+4. Write tests (`BlackBoxTest` first, then `WhiteBoxTest`)
+5. Update `README.md` (run `update-readme`)
 
 ### 1. Clarify the design (before coding)
 

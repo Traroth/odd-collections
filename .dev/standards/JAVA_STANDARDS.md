@@ -101,22 +101,72 @@ for example:
 
 ## 4. Tests
 
-### Two separate test classes per tested class
+### Three levels of testing
 
-For each class `Foo`, create:
+Each interface/implementation group has three levels of tests:
 
-- `FooBlackBoxTest` — black-box tests, based solely on the public contract and
-  Javadoc, with no knowledge of the internal implementation
-- `FooWhiteBoxTest` — white-box tests, leveraging knowledge of the
-  implementation to target technically risky areas (hash collisions, resize,
-  internal structure consistency, algorithmic edge cases)
+#### Level 1 — Interface contract test (`FooTest`)
+
+One test class per **interface**, using a `MockFoo` implementation.
+
+- Tests the interface contract in isolation — that the methods exist, that
+  enums are correct, that exceptions are thrown at the right places
+- Uses a `MockFoo` that implements the interface by delegating to a simple
+  standard library structure (e.g. `ArrayList`, `HashMap`), with no knowledge
+  of any real implementation
+- Must be writable without reading any concrete implementation
+- Named `FooTest` (e.g. `ChunkyListTest`, `SymmetricMapTest`)
+
+The `MockFoo` class:
+- Is package-private, in the same test package
+- Implements the interface minimally — just enough to satisfy the contract
+- Lives in `src/test/java/fr/dufrenoy/util/`
+
+#### Level 2 — Black-box tests (`FooImplBlackBoxTest`)
+
+One test class per **concrete implementation**, using that implementation
+directly.
+
+- Tests that the implementation correctly fulfils the full interface contract
+- No knowledge of the internal implementation is assumed or used
+- Must be writable without reading the source code of the implementation
+- Named `ConcreteClassBlackBoxTest` (e.g. `UnsynchronizedSymmetricMapBlackBoxTest`,
+  `SynchronizedChunkyListBlackBoxTest`)
+- For thread-safe implementations, also covers concurrency guarantees
+  (snapshot iterator behaviour, thread-safety of writes, etc.) — these are
+  part of the public contract documented in the Javadoc
+
+#### Level 3 — White-box tests (`FooImplWhiteBoxTest`)
+
+One test class per **concrete implementation**, leveraging knowledge of
+the internal structure.
+
+- Tests technically risky internal areas: hash collisions, resize boundaries,
+  internal structure consistency, lock ordering, algorithmic edge cases
+- Each test must have a comment explaining *why* it targets a specific
+  internal point
+- Named `ConcreteClassWhiteBoxTest` (e.g. `UnsynchronizedSymmetricMapWhiteBoxTest`,
+  `SynchronizedChunkyListWhiteBoxTest`)
+
+### Summary table
+
+| Class type | Test class | What it tests |
+|---|---|---|
+| Interface `Foo` | `FooTest` (uses `MockFoo`) | Interface contract in isolation |
+| `UnsynchronizedFoo` | `UnsynchronizedFooBlackBoxTest` | Full contract via real implementation |
+| `UnsynchronizedFoo` | `UnsynchronizedFooWhiteBoxTest` | Internal structure and edge cases |
+| `SynchronizedFoo` | `SynchronizedFooBlackBoxTest` | Full contract + concurrency guarantees |
+| `SynchronizedFoo` | `SynchronizedFooWhiteBoxTest` | Internal structure, locking, edge cases |
 
 ### General principles
 
-- Black-box tests must be writable without reading the source code
-- White-box tests must document why they target a specific internal point
 - Systematically cover: nominal case, boundary cases (null, empty, single
   element), error cases (expected exception)
+- Black-box tests at level 2 are intentionally similar across synchronized
+  and unsynchronized implementations — the duplication is deliberate, as both
+  must satisfy the same contract independently
+- White-box tests must not duplicate black-box tests — they target only what
+  cannot be observed through the public API
 
 ---
 
