@@ -19,21 +19,21 @@ of each session.
 
 ## SymmetricMap
 
-- [ ] Extract `SymmetricMap<K, V>` as an interface
-- [ ] Rename current `SymmetricMap` to `UnsynchronizedSymmetricMap`
-- [ ] Implement `SynchronizedSymmetricMap`
+- [x] Extract `SymmetricMap<K, V>` as an interface
+- [x] Rename current `SymmetricMap` to `UnsynchronizedSymmetricMap`
+- [x] Implement `SynchronizedSymmetricMap`
 - [ ] Implement `setValue()` on `Entry` in a way that maintains bijectivity,
   which will allow removing the manual overrides of `replace`, `replaceAll`,
   `merge`, `compute`, `computeIfPresent` and delegating to `AbstractMap`
 - [ ] Change `getKey()` and `removeByValue()` return types to `Optional`
   (per null handling rules in `JAVA_STANDARDS.md`)
-- [ ] Create `MockSymmetricMap`
-- [ ] Create `SymmetricMapTest`
-- [ ] Create `UnsynchronizedSymmetricMapBlackBoxTest` (rename from current
+- [x] Create `MockSymmetricMap`
+- [x] Create `SymmetricMapTest`
+- [x] Create `UnsynchronizedSymmetricMapBlackBoxTest` (rename from current
   `SymmetricMapBlackBoxTest`, update class name inside)
-- [ ] Create `UnsynchronizedSymmetricMapWhiteBoxTest`
-- [ ] Create `SynchronizedSymmetricMapBlackBoxTest`
-- [ ] Create `SynchronizedSymmetricMapWhiteBoxTest`
+- [x] Create `UnsynchronizedSymmetricMapWhiteBoxTest`
+- [x] Create `SynchronizedSymmetricMapBlackBoxTest`
+- [x] Create `SynchronizedSymmetricMapWhiteBoxTest`
 
 ---
 
@@ -41,13 +41,6 @@ of each session.
 
 - [ ] Bring `ChunkyList` interface into compliance with Oracle Java guidelines
   (beginning file comment, `package`/comment order, explicit imports)
-- [ ] Create `ChunkyListBlackBoxTest` (rename existing `ChunkyListTest` —
-  verify scope and rename accordingly)
-- [ ] Create `UnsynchronizedChunkyListBlackBoxTest` (rename from current
-  `UnsynchronizedChunkyListTest`, update class name inside)
-- [ ] Create `UnsynchronizedChunkyListWhiteBoxTest`
-- [ ] Create `SynchronizedChunkyListBlackBoxTest` (rename from current
-  `SynchronizedChunkyListTest`, update class name inside)
 - [ ] Create `SynchronizedChunkyListWhiteBoxTest`
 
 ---
@@ -60,7 +53,13 @@ of each session.
 - [x] Configurable growing and shrinking strategies
 - [x] Native `Spliterator` for efficient parallel streams
 - [x] `reorganize()` operation to compact sparsely filled chunks
-- [x] 50 tests — 0 failures
+- [x] 56 tests — 0 failures (restructured into Black Box / White Box)
+- [x] Null elements not allowed (compliance with Optional preference)
+- [x] Create `UnsynchronizedChunkyListBlackBoxTest` (rename from current
+  `UnsynchronizedChunkyListTest`, update class name inside)
+- [x] Create `UnsynchronizedChunkyListWhiteBoxTest`
+- [x] Create `SynchronizedChunkyListBlackBoxTest` (rename from current
+  `SynchronizedChunkyListTest`, update class name inside)
 
 ### SymmetricMap
 - [x] Initial implementation with double collision chain

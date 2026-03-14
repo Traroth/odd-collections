@@ -23,6 +23,7 @@
 package fr.dufrenoy.util;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -58,13 +59,14 @@ public interface SymmetricMap<K, V> extends Map<K, V> {
     // ─── Symmetric lookups ────────────────────────────────────────────────────
 
     /**
-     * Returns the key associated with the given value, or {@code null} if not
+     * Returns the key associated with the given value, or empty if not
      * found.
      *
      * @param value the value to look up
-     * @return the key associated with {@code value}, or {@code null} if not found
+     * @return an {@code Optional} containing the key associated with {@code value},
+     *         or empty if not found
      */
-    K getKey(Object value);
+    Optional<K> getKey(Object value);
 
     // ─── Symmetric insertion ──────────────────────────────────────────────────
 
@@ -88,10 +90,10 @@ public interface SymmetricMap<K, V> extends Map<K, V> {
      * Symmetric to {@link #remove(Object)} which removes by key.
      *
      * @param value the value whose entry is to be removed
-     * @return the key that was associated with {@code value}, or {@code null}
-     *         if not found
+     * @return an {@code Optional} containing the key that was associated with {@code value},
+     *         or empty if not found
      */
-    K removeByValue(Object value);
+    Optional<K> removeByValue(Object value);
 
     // ─── Inverse ──────────────────────────────────────────────────────────────
 

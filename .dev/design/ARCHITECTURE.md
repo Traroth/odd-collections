@@ -143,7 +143,7 @@ values, one mapping values to keys — kept in sync on every mutation.
 **Reason for rejection:** two maps double the memory overhead and require
 careful synchronization of every mutation to keep both maps consistent. The
 single-array approach stores each entry exactly once while still providing O(1)
-average lookup in both directions.
+average lookup in both directions via `get()` and `getKey()`.
 
 ---
 
@@ -260,3 +260,17 @@ their entire duration.
 a read lock for the full duration of an iteration blocks all writes for an
 unbounded time. Snapshot iterators allow writes to proceed concurrently, at
 the cost of copying the entry set. This cost is documented in the Javadoc.
+
+---
+
+### UnsynchronizedSymmetricMapWhiteBoxTest
+
+A dedicated white-box test class (`UnsynchronizedSymmetricMapWhiteBoxTest`) is added to verify the internal invariants and implementation details of `UnsynchronizedSymmetricMap`. This test covers:
+- Structure and integrity of the bucket array and collision chains (key and value chains)
+- Correctness of internal state after operations (e.g., no orphaned entries, both chains updated)
+- Edge cases not observable via the public API (e.g., hash collisions, internal resizing, entry reuse)
+- Invariants: bijectivity, no duplicate keys/values, consistency between chains
+
+**Rationale:** Black-box tests validate the public contract, but white-box tests are necessary to ensure the correctness of the internal data structure, especially for complex invariants and performance-critical paths.
+
+---

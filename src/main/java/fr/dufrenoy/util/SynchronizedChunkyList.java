@@ -276,6 +276,7 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
 
     @Override
     public E set(int index, E element) {
+        if (element == null) throw new IllegalArgumentException("null elements not allowed");
         writeLock.lock();
         try {
             return inner.set(index, element);

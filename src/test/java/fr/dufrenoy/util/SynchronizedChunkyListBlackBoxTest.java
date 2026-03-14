@@ -9,7 +9,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-public class SynchronizedChunkyListTest {
+public class SynchronizedChunkyListBlackBoxTest {
 
     // ===== Tests de délégation de base =====
 
@@ -275,5 +275,25 @@ public class SynchronizedChunkyListTest {
                 .collect(Collectors.toList());
 
         assertEquals(Arrays.asList("A", "B", "C"), result);
+    }
+
+    @Test
+    public void testAdd_Null_Throws() {
+        SynchronizedChunkyList<String> list = new SynchronizedChunkyList<>();
+        assertThrows(IllegalArgumentException.class, () -> list.add(null));
+    }
+
+    @Test
+    public void testAddAtIndex_Null_Throws() {
+        SynchronizedChunkyList<String> list = new SynchronizedChunkyList<>();
+        list.add("A");
+        assertThrows(IllegalArgumentException.class, () -> list.add(0, null));
+    }
+
+    @Test
+    public void testSet_Null_Throws() {
+        SynchronizedChunkyList<String> list = new SynchronizedChunkyList<>();
+        list.add("A");
+        assertThrows(IllegalArgumentException.class, () -> list.set(0, null));
     }
 }

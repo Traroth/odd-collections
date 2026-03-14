@@ -269,6 +269,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
 
     @Override
     public E set(int index, E element) {
+        if (element == null) throw new IllegalArgumentException("null elements not allowed");
         if (index < 0 || index >= size) {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
         }
@@ -290,6 +291,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
 
     @Override
     public boolean add(E e) {
+        if (e == null) throw new IllegalArgumentException("null elements not allowed");
         if (lastChunk == null) {
             add(e, addEmptyChunkAfter(null), 0);
         } else if (lastChunk.nbElements < chunkSize) {
@@ -302,6 +304,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
 
     @Override
     public void add(int index, E element) {
+        if (element == null) throw new IllegalArgumentException("null elements not allowed");
         if (index < 0 || index > size) {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
         }

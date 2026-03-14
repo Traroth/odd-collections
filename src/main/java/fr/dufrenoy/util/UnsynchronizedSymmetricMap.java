@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 
@@ -155,12 +156,13 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
     /**
      * {@inheritDoc}
      *
-     * @return the key associated with {@code value}, or {@code null} if not found
+     * @return an {@code Optional} containing the key associated with {@code value},
+     *         or empty if not found
      */
     @Override
-    public K getKey(Object value) {
+    public Optional<K> getKey(Object value) {
         Entry<K, V> e = getEntryByValue(value);
-        return e == null ? null : e.key;
+        return e == null ? Optional.empty() : Optional.of(e.key);
     }
 
     /**
@@ -219,129 +221,17 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
     /**
      * {@inheritDoc}
      *
-     * @return the key that was associated with {@code value}, or {@code null}
-     *         if not found
+     * @return an {@code Optional} containing the key that was associated with {@code value},
+     *         or empty if not found
      */
     @Override
-    public K removeByValue(Object value) {
+    public Optional<K> removeByValue(Object value) {
         Entry<K, V> e = getEntryByValue(value);
-        if (e == null) return null;
+        if (e == null) return Optional.empty();
         removeEntry(e);
-        return e.key;
+        return Optional.of(e.key);
     }
 
-    /**
-     * Replaces the value associated with the given key, if present.
-     * If the new value already exists in this map, the conflicting entry is
-     * silently removed to maintain bijectivity.
-     *
-     * @param key   the key
-     * @param value the new value
-     * @return the previous value, or {@code null} if the key was not present
-     */
-    @Override
-    public V replace(K key, V value) {
-        if (!containsKey(key)) return null;
-        return put(key, value);
-    }
-
-    /**
-     * Replaces the value associated with the given key only if it is currently
-     * mapped to the given old value.
-     *
-     * @param key      the key
-     * @param oldValue the expected current value
-     * @param newValue the new value
-     * @return {@code true} if the value was replaced
-     */
-    @Override
-    public boolean replace(K key, V oldValue, V newValue) {
-        Entry<K, V> e = getEntry(key);
-        if (e == null || !Objects.equals(e.value, oldValue)) return false;
-        put(key, newValue);
-        return true;
-    }
-
-    /**
-     * Replaces each value with the result of the given function applied to its
-     * key and current value. Maintains bijectivity — if the function produces a
-     * duplicate value, the conflicting entry is silently removed.
-     *
-     * @param function the remapping function
-     */
-    @Override
-    public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
-        Objects.requireNonNull(function);
-        // Collect entries first to avoid concurrent modification during iteration
-        List<Map.Entry<K, V>> snapshot = new ArrayList<>(entrySet());
-        for (Map.Entry<K, V> e : snapshot) {
-            put(e.getKey(), function.apply(e.getKey(), e.getValue()));
-        }
-    }
-
-    /**
-     * If the key is not present, associates it with the given value.
-     * If the key is present, applies the remapping function to the old and new
-     * values; if the result is {@code null}, removes the entry, otherwise
-     * replaces it via {@link #put}.
-     *
-     * @param key               the key
-     * @param value             the value to merge with
-     * @param remappingFunction the function to recompute the value
-     * @return the new value, or {@code null} if the entry was removed
-     */
-    @Override
-    public V merge(K key, V value,
-                   BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
-        Objects.requireNonNull(remappingFunction);
-        Objects.requireNonNull(value);
-        Entry<K, V> e = getEntry(key);
-        V newValue = e == null ? value : remappingFunction.apply(e.value, value);
-        if (newValue == null) remove(key);
-        else put(key, newValue);
-        return newValue;
-    }
-
-    /**
-     * Computes a new value for the given key using the remapping function.
-     * If the result is {@code null}, removes the entry (or does nothing if absent).
-     * Otherwise inserts or replaces via {@link #put}.
-     *
-     * @param key               the key
-     * @param remappingFunction the function to compute the value
-     * @return the new value, or {@code null} if removed or absent
-     */
-    @Override
-    public V compute(K key,
-                     BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-        Objects.requireNonNull(remappingFunction);
-        Entry<K, V> e = getEntry(key);
-        V newValue = remappingFunction.apply(key, e == null ? null : e.value);
-        if (newValue == null) remove(key);
-        else put(key, newValue);
-        return newValue;
-    }
-
-    /**
-     * If the key is present, computes a new value using the remapping function.
-     * If the result is {@code null}, removes the entry. Otherwise replaces via
-     * {@link #put}.
-     *
-     * @param key               the key
-     * @param remappingFunction the function to compute the value
-     * @return the new value, or {@code null} if removed or absent
-     */
-    @Override
-    public V computeIfPresent(K key,
-                              BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-        Objects.requireNonNull(remappingFunction);
-        Entry<K, V> e = getEntry(key);
-        if (e == null) return null;
-        V newValue = remappingFunction.apply(key, e.value);
-        if (newValue == null) remove(key);
-        else put(key, newValue);
-        return newValue;
-    }
 
     /**
      * Returns an independent copy of this map with keys and values swapped,
@@ -439,7 +329,7 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
 
         int kHash = Objects.hashCode(key);
         int vHash = Objects.hashCode(value);
-        Entry<K, V> e = new Entry<>(key, kHash, value, vHash);
+        Entry<K, V> e = new Entry<>(this, key, kHash, value, vHash);
 
         // Insert at head of key chain
         int kIdx = keyIndex(kHash);
@@ -543,6 +433,7 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      */
     static class Entry<K, V> implements Map.Entry<K, V> {
 
+        final UnsynchronizedSymmetricMap<K, V> map;
         final K key;
         final int keyHash;
         V value;
@@ -550,7 +441,8 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         Entry<K, V> nextByKey;
         Entry<K, V> nextByValue;
 
-        Entry(K key, int keyHash, V value, int valueHash) {
+        Entry(UnsynchronizedSymmetricMap<K, V> map, K key, int keyHash, V value, int valueHash) {
+            this.map = map;
             this.key = key;
             this.keyHash = keyHash;
             this.value = value;
@@ -576,15 +468,16 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         public V getValue() { return value; }
 
         /**
-         * Not supported — use {@link UnsynchronizedSymmetricMap#put(Object, Object)}
-         * instead.
+         * Sets the value associated with this entry's key to the given value,
+         * maintaining bijectivity. If the new value already exists in the map,
+         * the conflicting entry is silently removed.
          *
-         * @throws UnsupportedOperationException always
+         * @param newValue the new value
+         * @return the previous value
          */
         @Override
         public V setValue(V newValue) {
-            throw new UnsupportedOperationException(
-                    "setValue is not supported on SymmetricMap entries — use put() instead");
+            return map.put(key, newValue);
         }
     }
 
@@ -660,7 +553,7 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
 
         @Override
         public boolean remove(Object o) {
-            return removeByValue(o) != null;
+            return removeByValue(o).isPresent();
         }
 
         @Override

@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
@@ -100,7 +101,7 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
     // ─── SymmetricMap contract ────────────────────────────────────────────────
 
     @Override
-    public K getKey(Object value) {
+    public Optional<K> getKey(Object value) {
         readLock.lock();
         try {
             return inner.getKey(value);
@@ -120,7 +121,7 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
     }
 
     @Override
-    public K removeByValue(Object value) {
+    public Optional<K> removeByValue(Object value) {
         writeLock.lock();
         try {
             return inner.removeByValue(value);
@@ -408,7 +409,11 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
     private List<Map.Entry<K, V>> snapshot() {
         readLock.lock();
         try {
-            return new ArrayList<>(inner.entrySet());
+            List<Map.Entry<K, V>> list = new ArrayList<>();
+            for (Map.Entry<K, V> e : inner.entrySet()) {
+                list.add(new WrappedEntry(e));
+            }
+            return list;
         } finally {
             readLock.unlock();
         }
@@ -459,7 +464,7 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
 
         @Override
         public boolean remove(Object o) {
-            return removeByValue(o) != null;
+            return removeByValue(o).isPresent();
         }
 
         @Override
@@ -515,5 +520,36 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
             List<Map.Entry<K, V>> snap = snapshot();
             return snap.iterator();
         }
+    }
+
+    // ─── Inner class: WrappedEntry ────────────────────────────────────────────
+
+    /**
+     * A wrapper around an entry from the inner map that delegates setValue
+     * to the synchronized put method.
+     */
+    private class WrappedEntry implements Map.Entry<K, V> {
+        private final Map.Entry<K, V> innerEntry;
+
+        WrappedEntry(Map.Entry<K, V> innerEntry) {
+            this.innerEntry = innerEntry;
+        }
+
+        @Override
+        public K getKey() { return innerEntry.getKey(); }
+
+        @Override
+        public V getValue() { return innerEntry.getValue(); }
+
+        @Override
+        public V setValue(V value) {
+            return SynchronizedSymmetricMap.this.put(getKey(), value);
+        }
+
+        @Override
+        public boolean equals(Object o) { return innerEntry.equals(o); }
+
+        @Override
+        public int hashCode() { return innerEntry.hashCode(); }
     }
 }

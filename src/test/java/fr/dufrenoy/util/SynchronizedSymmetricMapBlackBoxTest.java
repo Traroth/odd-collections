@@ -1,5 +1,5 @@
 /*
- * UnsynchronizedSymmetricMapBlackBoxTest.java
+ * SynchronizedSymmetricMapBlackBoxTest.java
  *
  * Version 1.0
  *
@@ -26,7 +26,13 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -38,80 +44,81 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Black-box tests for {@link SymmetricMap}, based solely on the public contract
  * and Javadoc. No knowledge of the internal implementation is assumed.
+ * Includes concurrency tests for thread-safety guarantees.
  */
-public class UnsynchronizedSymmetricMapBlackBoxTest {
+public class SynchronizedSymmetricMapBlackBoxTest {
 
     // ─── Constructors ─────────────────────────────────────────────────────────
 
     @Test
     public void testDefaultConstructor_EmptyMap() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         assertTrue(map.isEmpty());
         assertEquals(0, map.size());
     }
 
     @Test
     public void testConstructor_InitialCapacity() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>(32);
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>(32);
         assertTrue(map.isEmpty());
     }
 
     @Test
     public void testConstructor_InitialCapacityAndLoadFactor() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>(32, 0.5f);
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>(32, 0.5f);
         assertTrue(map.isEmpty());
     }
 
     @Test
     public void testConstructor_InvalidCapacity_Zero() {
-        assertThrows(IllegalArgumentException.class, () -> new UnsynchronizedSymmetricMap<>(0));
+        assertThrows(IllegalArgumentException.class, () -> new SynchronizedSymmetricMap<>(0));
     }
 
     @Test
     public void testConstructor_InvalidCapacity_Negative() {
-        assertThrows(IllegalArgumentException.class, () -> new UnsynchronizedSymmetricMap<>(-1));
+        assertThrows(IllegalArgumentException.class, () -> new SynchronizedSymmetricMap<>(-1));
     }
 
     @Test
     public void testConstructor_InvalidLoadFactor_Zero() {
-        assertThrows(IllegalArgumentException.class, () -> new UnsynchronizedSymmetricMap<>(16, 0f));
+        assertThrows(IllegalArgumentException.class, () -> new SynchronizedSymmetricMap<>(16, 0f));
     }
 
     @Test
     public void testConstructor_InvalidLoadFactor_Negative() {
-        assertThrows(IllegalArgumentException.class, () -> new UnsynchronizedSymmetricMap<>(16, -0.5f));
+        assertThrows(IllegalArgumentException.class, () -> new SynchronizedSymmetricMap<>(16, -0.5f));
     }
 
     @Test
     public void testConstructor_InvalidLoadFactor_NaN() {
-        assertThrows(IllegalArgumentException.class, () -> new UnsynchronizedSymmetricMap<>(16, Float.NaN));
+        assertThrows(IllegalArgumentException.class, () -> new SynchronizedSymmetricMap<>(16, Float.NaN));
     }
 
     // ─── put / get ────────────────────────────────────────────────────────────
 
     @Test
     public void testPut_NewEntry_ReturnsNull() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         assertNull(map.put("a", 1));
     }
 
     @Test
     public void testPut_NewEntry_SizeIncreases() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertEquals(1, map.size());
     }
 
     @Test
     public void testPut_ExistingKey_ReturnsPreviousValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertEquals(1, map.put("a", 2));
     }
 
     @Test
     public void testPut_ExistingKey_UpdatesValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("a", 2);
         assertEquals(2, map.get("a"));
@@ -119,7 +126,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testPut_ExistingKey_SizeUnchanged() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("a", 2);
         assertEquals(1, map.size());
@@ -127,7 +134,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testPut_ExistingValue_RemovesConflictingEntry() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 1); // value 1 already used by "a"
         assertFalse(map.containsKey("a"));
@@ -137,7 +144,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testPut_SameKeyAndValue_IsNoOp() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         Integer returned = map.put("a", 1);
         assertEquals(1, returned);
@@ -147,14 +154,14 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testGet_ExistingKey_ReturnsValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertEquals(1, map.get("a"));
     }
 
     @Test
     public void testGet_AbsentKey_ReturnsNull() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         assertNull(map.get("absent"));
     }
 
@@ -162,20 +169,20 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testGetKey_ExistingValue_ReturnsKey() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertEquals("a", map.getKey(1).get());
     }
 
     @Test
-    public void testGetKey_AbsentValue_ReturnsEmpty() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+    public void testGetKey_AbsentValue_ReturnsNull() {
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         assertFalse(map.getKey(99).isPresent());
     }
 
     @Test
     public void testGetKey_SymmetricWithGet() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         map.put("c", 3);
@@ -189,27 +196,27 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testContainsKey_Present() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertTrue(map.containsKey("a"));
     }
 
     @Test
     public void testContainsKey_Absent() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         assertFalse(map.containsKey("a"));
     }
 
     @Test
     public void testContainsValue_Present() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertTrue(map.containsValue(1));
     }
 
     @Test
     public void testContainsValue_Absent() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         assertFalse(map.containsValue(1));
     }
 
@@ -217,14 +224,14 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testRemove_ExistingKey_ReturnsValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertEquals(1, map.remove("a"));
     }
 
     @Test
     public void testRemove_ExistingKey_SizeDecreases() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.remove("a");
         assertEquals(0, map.size());
@@ -232,7 +239,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testRemove_ExistingKey_EntryGone() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.remove("a");
         assertFalse(map.containsKey("a"));
@@ -241,20 +248,20 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testRemove_AbsentKey_ReturnsNull() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         assertNull(map.remove("absent"));
     }
 
     @Test
     public void testRemoveByValue_ExistingValue_ReturnsKey() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertEquals("a", map.removeByValue(1).get());
     }
 
     @Test
     public void testRemoveByValue_ExistingValue_EntryGone() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.removeByValue(1);
         assertFalse(map.containsKey("a"));
@@ -263,18 +270,18 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testRemoveByValue_AbsentValue_ReturnsNull() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         assertFalse(map.removeByValue(99).isPresent());
     }
 
     @Test
     public void testRemoveByValue_SymmetricWithRemove() {
-        SymmetricMap<String, Integer> map1 = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map1 = new SynchronizedSymmetricMap<>();
         map1.put("a", 1);
         map1.put("b", 2);
         map1.remove("a");
 
-        SymmetricMap<String, Integer> map2 = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map2 = new SynchronizedSymmetricMap<>();
         map2.put("a", 1);
         map2.put("b", 2);
         map2.removeByValue(1);
@@ -286,28 +293,28 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testSafePut_NewEntry_Succeeds() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.safePut("a", 1);
         assertEquals(1, map.get("a"));
     }
 
     @Test
     public void testSafePut_DuplicateKey_Throws() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertThrows(IllegalArgumentException.class, () -> map.safePut("a", 2));
     }
 
     @Test
     public void testSafePut_DuplicateValue_Throws() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertThrows(IllegalArgumentException.class, () -> map.safePut("b", 1));
     }
 
     @Test
     public void testSafePut_DuplicateKey_MapUnchanged() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         try { map.safePut("a", 2); } catch (IllegalArgumentException ignored) {}
         assertEquals(1, map.get("a"));
@@ -318,14 +325,14 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testReplace_ExistingKey_ReturnsOldValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertEquals(1, map.replace("a", 2));
     }
 
     @Test
     public void testReplace_ExistingKey_UpdatesValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.replace("a", 2);
         assertEquals(2, map.get("a"));
@@ -333,13 +340,13 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testReplace_AbsentKey_ReturnsNull() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         assertNull(map.replace("absent", 1));
     }
 
     @Test
     public void testReplace_AbsentKey_MapUnchanged() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.replace("absent", 1);
         assertFalse(map.containsKey("absent"));
         assertEquals(0, map.size());
@@ -347,7 +354,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testReplace_ExistingValue_RemovesConflict() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         map.replace("a", 2); // value 2 already belongs to "b"
@@ -358,7 +365,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testReplace_Conditional_MatchingOldValue_Succeeds() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertTrue(map.replace("a", 1, 2));
         assertEquals(2, map.get("a"));
@@ -366,7 +373,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testReplace_Conditional_NonMatchingOldValue_Fails() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertFalse(map.replace("a", 99, 2));
         assertEquals(1, map.get("a"));
@@ -376,7 +383,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testReplaceAll_AppliesFunction() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         map.replaceAll((k, v) -> v * 10);
@@ -386,7 +393,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testReplaceAll_MaintainsBijectivity() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         map.replaceAll((k, v) -> 42); // produces duplicate values
@@ -398,14 +405,14 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testMerge_AbsentKey_InsertsValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.merge("a", 1, Integer::sum);
         assertEquals(1, map.get("a"));
     }
 
     @Test
     public void testMerge_ExistingKey_AppliesFunction() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.merge("a", 2, Integer::sum);
         assertEquals(3, map.get("a"));
@@ -413,7 +420,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testMerge_FunctionReturnsNull_RemovesEntry() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.merge("a", 1, (v1, v2) -> null);
         assertFalse(map.containsKey("a"));
@@ -423,14 +430,14 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testCompute_AbsentKey_InsertsValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.compute("a", (k, v) -> 1);
         assertEquals(1, map.get("a"));
     }
 
     @Test
     public void testCompute_ExistingKey_UpdatesValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.compute("a", (k, v) -> v + 10);
         assertEquals(11, map.get("a"));
@@ -438,7 +445,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testCompute_FunctionReturnsNull_RemovesEntry() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.compute("a", (k, v) -> null);
         assertFalse(map.containsKey("a"));
@@ -448,7 +455,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testComputeIfPresent_ExistingKey_UpdatesValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.computeIfPresent("a", (k, v) -> v + 10);
         assertEquals(11, map.get("a"));
@@ -456,14 +463,14 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testComputeIfPresent_AbsentKey_DoesNothing() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.computeIfPresent("absent", (k, v) -> 99);
         assertFalse(map.containsKey("absent"));
     }
 
     @Test
     public void testComputeIfPresent_FunctionReturnsNull_RemovesEntry() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.computeIfPresent("a", (k, v) -> null);
         assertFalse(map.containsKey("a"));
@@ -473,7 +480,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testInverse_SwapsKeysAndValues() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         SymmetricMap<Integer, String> inv = map.inverse();
@@ -483,7 +490,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testInverse_SameSize() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         assertEquals(map.size(), map.inverse().size());
@@ -491,7 +498,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testInverse_IsIndependent() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         SymmetricMap<Integer, String> inv = map.inverse();
         map.put("b", 2);
@@ -500,7 +507,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testInverse_OfInverse_EqualToOriginal() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         assertEquals(map, map.inverse().inverse());
@@ -508,7 +515,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testInverse_ReturnsDifferentInstance() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertNotSame(map, map.inverse().inverse());
     }
@@ -517,7 +524,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testClear_EmptiesMap() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         map.clear();
@@ -527,7 +534,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testClear_RemovesAllKeys() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.clear();
         assertFalse(map.containsKey("a"));
@@ -538,7 +545,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testKeySet_ContainsAllKeys() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         assertTrue(map.keySet().contains("a"));
@@ -547,7 +554,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testKeySet_Size() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         assertEquals(2, map.keySet().size());
@@ -555,7 +562,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testKeySet_Remove_UpdatesMap() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.keySet().remove("a");
         assertFalse(map.containsKey("a"));
@@ -564,7 +571,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testKeySet_IsLiveView() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         Set<String> keys = map.keySet();
         map.put("b", 2);
@@ -573,7 +580,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testKeySet_Iterator_CoversAllKeys() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         map.put("c", 3);
@@ -586,14 +593,14 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testValues_ReturnsSet() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         assertTrue(map.values() instanceof Set);
     }
 
     @Test
     public void testValues_ContainsAllValues() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         assertTrue(map.values().contains(1));
@@ -602,7 +609,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testValues_Remove_UpdatesMap() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.values().remove(1);
         assertFalse(map.containsValue(1));
@@ -611,7 +618,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testValues_IsLiveView() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         Set<Integer> values = map.values();
         map.put("b", 2);
@@ -622,7 +629,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testEntrySet_Size() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         assertEquals(2, map.entrySet().size());
@@ -630,7 +637,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testEntrySet_ContainsEntry() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         Map.Entry<String, Integer> entry = Map.entry("a", 1);
         assertTrue(map.entrySet().contains(entry));
@@ -638,7 +645,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testEntrySet_Remove_UpdatesMap() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.entrySet().remove(Map.entry("a", 1));
         assertFalse(map.containsKey("a"));
@@ -646,7 +653,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testEntrySet_setValue_WorksAndMaintainsBijectivity() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         Map.Entry<String, Integer> entry = map.entrySet().iterator().next();
         Integer oldValue = entry.setValue(2);
@@ -658,7 +665,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testEntrySet_setValue_HandlesConflicts() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         Map.Entry<String, Integer> entry = map.entrySet().iterator().next();
@@ -672,7 +679,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testEntrySet_IsLiveView() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         Set<Map.Entry<String, Integer>> entries = map.entrySet();
         map.put("b", 2);
@@ -683,7 +690,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testViews_MutualConsistency() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", 1);
         map.put("b", 2);
         map.put("c", 3);
@@ -706,7 +713,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testPut_NullKey() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put(null, 1);
         assertTrue(map.containsKey(null));
         assertEquals(1, map.get(null));
@@ -714,7 +721,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testPut_NullValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", null);
         assertTrue(map.containsValue(null));
         assertNull(map.get("a"));
@@ -722,7 +729,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testPut_NullKeyAndValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put(null, null);
         assertTrue(map.containsKey(null));
         assertTrue(map.containsValue(null));
@@ -730,14 +737,14 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testGetKey_NullValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", null);
         assertEquals("a", map.getKey(null).get());
     }
 
     @Test
     public void testRemoveByValue_NullValue() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
         map.put("a", null);
         assertEquals("a", map.removeByValue(null).get());
         assertFalse(map.containsKey("a"));
@@ -747,11 +754,11 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testEquals_SameEntries() {
-        SymmetricMap<String, Integer> map1 = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map1 = new SynchronizedSymmetricMap<>();
         map1.put("a", 1);
         map1.put("b", 2);
 
-        SymmetricMap<String, Integer> map2 = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map2 = new SynchronizedSymmetricMap<>();
         map2.put("a", 1);
         map2.put("b", 2);
 
@@ -760,10 +767,10 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testHashCode_EqualMaps_SameHashCode() {
-        SymmetricMap<String, Integer> map1 = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map1 = new SynchronizedSymmetricMap<>();
         map1.put("a", 1);
 
-        SymmetricMap<String, Integer> map2 = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map2 = new SynchronizedSymmetricMap<>();
         map2.put("a", 1);
 
         assertEquals(map1.hashCode(), map2.hashCode());
@@ -773,7 +780,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testLargeMap_AllEntriesRetrievable() {
-        SymmetricMap<Integer, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<Integer, Integer> map = new SynchronizedSymmetricMap<>();
         int n = 200;
         for (int i = 0; i < n; i++) map.put(i, i + 1000);
         assertEquals(n, map.size());
@@ -785,15 +792,178 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testLargeMap_BijectivityPreserved() {
-        SymmetricMap<Integer, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<Integer, Integer> map = new SynchronizedSymmetricMap<>();
         int n = 200;
         for (int i = 0; i < n; i++) map.put(i, i + 1000);
         // Every value maps back to exactly one key
         Set<Integer> seenKeys = new HashSet<>();
         for (int i = 0; i < n; i++) {
-            Integer key = map.getKey(i + 1000).get();
+            Optional<Integer> optKey = map.getKey(i + 1000);
+            assertTrue(optKey.isPresent(), "Key not found for value " + (i + 1000));
+            Integer key = optKey.get();
             assertTrue(seenKeys.add(key), "Duplicate key found for value " + (i + 1000));
         }
     }
-}
 
+    // ─── Concurrency tests ────────────────────────────────────────────────────
+
+    @Test
+    public void testConcurrentReads() throws InterruptedException {
+        SymmetricMap<Integer, Integer> map = new SynchronizedSymmetricMap<>();
+        for (int i = 0; i < 100; i++) map.put(i, i + 100);
+
+        ExecutorService executor = Executors.newFixedThreadPool(10);
+        CountDownLatch latch = new CountDownLatch(100);
+
+        AtomicInteger errors = new AtomicInteger(0);
+
+        for (int i = 0; i < 100; i++) {
+            executor.submit(() -> {
+                try {
+                    for (int j = 0; j < 100; j++) {
+                        int key = j % 100;
+                        assertEquals(key + 100, map.get(key));
+                        assertEquals(key, map.getKey(key + 100).get());
+                    }
+                } catch (Throwable t) {
+                    errors.incrementAndGet();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        assertEquals(0, errors.get());
+        executor.shutdown();
+    }
+
+    @Test
+    public void testConcurrentWrites() throws InterruptedException {
+        SymmetricMap<Integer, Integer> map = new SynchronizedSymmetricMap<>();
+
+        ExecutorService executor = Executors.newFixedThreadPool(10);
+        CountDownLatch latch = new CountDownLatch(100);
+
+        AtomicInteger errors = new AtomicInteger(0);
+
+        for (int i = 0; i < 100; i++) {
+            final int threadId = i;
+            executor.submit(() -> {
+                try {
+                    for (int j = 0; j < 10; j++) {
+                        int key = threadId * 10 + j;
+                        map.put(key, key + 1000);
+                    }
+                } catch (Throwable t) {
+                    errors.incrementAndGet();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        assertEquals(0, errors.get());
+        assertEquals(1000, map.size());
+        executor.shutdown();
+    }
+
+    @Test
+    public void testConcurrentReadWrite() throws InterruptedException {
+        SymmetricMap<Integer, Integer> map = new SynchronizedSymmetricMap<>();
+
+        ExecutorService executor = Executors.newFixedThreadPool(10);
+        CountDownLatch latch = new CountDownLatch(10);
+
+        AtomicInteger errors = new AtomicInteger(0);
+
+        // Writers
+        for (int i = 0; i < 5; i++) {
+            final int threadId = i;
+            executor.submit(() -> {
+                try {
+                    for (int j = 0; j < 10; j++) {
+                        int key = threadId * 10 + j;
+                        map.put(key, key + 10000);
+                    }
+                } catch (Throwable t) {
+                    errors.incrementAndGet();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        // Readers
+        for (int i = 0; i < 5; i++) {
+            executor.submit(() -> {
+                try {
+                    for (int j = 0; j < 10; j++) {
+                        // Read whatever is there
+                        map.size();
+                        map.isEmpty();
+                        for (int k = 0; k < 10; k++) {
+                            map.get(k);
+                        }
+                    }
+                } catch (Throwable t) {
+                    errors.incrementAndGet();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        assertTrue(latch.await(30, TimeUnit.SECONDS));
+        assertEquals(0, errors.get());
+        executor.shutdown();
+    }
+
+    @Test
+    public void testSnapshotIterator_ConcurrentModification() throws InterruptedException {
+        SymmetricMap<Integer, Integer> map = new SynchronizedSymmetricMap<>();
+        for (int i = 0; i < 100; i++) map.put(i, i + 100);
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch latch = new CountDownLatch(2);
+
+        AtomicInteger iteratorSize = new AtomicInteger(0);
+
+        // Iterator thread
+        executor.submit(() -> {
+            try {
+                Set<Integer> keys = new HashSet<>();
+                for (Integer key : map.keySet()) {
+                    keys.add(key);
+                    Thread.sleep(1); // Slow down iteration
+                }
+                iteratorSize.set(keys.size());
+            } catch (Throwable t) {
+                // Ignore
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        // Modifier thread
+        executor.submit(() -> {
+            try {
+                Thread.sleep(5);
+                for (int i = 100; i < 200; i++) {
+                    map.put(i, i + 100);
+                }
+            } catch (Throwable t) {
+                // Ignore
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        // Iterator should have seen the snapshot, not the modifications
+        assertEquals(100, iteratorSize.get());
+        assertEquals(200, map.size());
+        executor.shutdown();
+    }
+}
