@@ -57,6 +57,7 @@ src/
     BACKLOG.md
   design/
     ARCHITECTURE.md
+    INVARIANTS.md
   skills/
     static-analysis/
       SKILL.md
@@ -65,5 +66,15 @@ src/
     update-backlog/
       SKILL.md
     update-readme/
+      SKILL.md
+    api-consistency-check/
+      SKILL.md
+    architecture-drift-check/
+      SKILL.md
+    design-review/
+      SKILL.md
+    refactor-class/
+      SKILL.md
+    test-coverage-review/
       SKILL.md
 ```
