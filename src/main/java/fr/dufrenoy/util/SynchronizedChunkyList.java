@@ -568,6 +568,20 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    /**
+     * Returns the number of chunks in this list.
+     *
+     * <p>This method is package-private and intended for testing purposes only.
+     */
+    final int countChunks() {
+        readLock.lock();
+        try {
+            return inner.countChunks();
+        } finally {
+            readLock.unlock();
+        }
+    }
+
     // ─── Object ───────────────────────────────────────────────────────────────
 
     @Override

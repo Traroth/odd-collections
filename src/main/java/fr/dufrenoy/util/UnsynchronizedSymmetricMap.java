@@ -329,14 +329,12 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
 
         int kHash = Objects.hashCode(key);
         int vHash = Objects.hashCode(value);
-        Entry<K, V> e = new Entry<>(this, key, kHash, value, vHash);
+        Entry<K, V> e = new Entry<>(key, kHash, value, vHash);
 
-        // Insert at head of key chain
         int kIdx = keyIndex(kHash);
         e.nextByKey = table[kIdx].firstByKey;
         table[kIdx].firstByKey = e;
 
-        // Insert at head of value chain
         int vIdx = valueIndex(vHash);
         e.nextByValue = table[vIdx].firstByValue;
         table[vIdx].firstByValue = e;
@@ -433,7 +431,6 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      */
     static class Entry<K, V> implements Map.Entry<K, V> {
 
-        final UnsynchronizedSymmetricMap<K, V> map;
         final K key;
         final int keyHash;
         V value;
@@ -441,8 +438,7 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         Entry<K, V> nextByKey;
         Entry<K, V> nextByValue;
 
-        Entry(UnsynchronizedSymmetricMap<K, V> map, K key, int keyHash, V value, int valueHash) {
-            this.map = map;
+        Entry(K key, int keyHash, V value, int valueHash) {
             this.key = key;
             this.keyHash = keyHash;
             this.value = value;
@@ -468,16 +464,15 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         public V getValue() { return value; }
 
         /**
-         * Sets the value associated with this entry's key to the given value,
-         * maintaining bijectivity. If the new value already exists in the map,
-         * the conflicting entry is silently removed.
+         * Not supported on raw entries — use the entry obtained from
+         * {@link UnsynchronizedSymmetricMap#entrySet()} to get setValue() support.
          *
-         * @param newValue the new value
-         * @return the previous value
+         * @throws UnsupportedOperationException always
          */
         @Override
         public V setValue(V newValue) {
-            return map.put(key, newValue);
+            throw new UnsupportedOperationException(
+                    "setValue is not supported on raw entries");
         }
     }
 
@@ -655,7 +650,35 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
                         bucketIndex++;
                         next = advanceToNext();
                     }
-                    return current;
+                    // Wrap the raw entry to provide setValue() support
+                    final Entry<K, V> snapshot = current;
+                    return new Map.Entry<K, V>() {
+                        @Override
+                        public K getKey() { return snapshot.key; }
+
+                        @Override
+                        public V getValue() { return snapshot.value; }
+
+                        @Override
+                        public V setValue(V newValue) {
+                            V oldValue = snapshot.value;
+                            UnsynchronizedSymmetricMap.this.put(snapshot.key, newValue);
+                            return oldValue;
+                        }
+
+                        @Override
+                        public int hashCode() { return snapshot.hashCode(); }
+
+                        @Override
+                        public boolean equals(Object o) {
+                            if (!(o instanceof Map.Entry)) {
+                                return false;
+                            }
+                            Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
+                            return Objects.equals(snapshot.key, e.getKey())
+                                    && Objects.equals(snapshot.value, e.getValue());
+                        }
+                    };
                 }
 
                 @Override

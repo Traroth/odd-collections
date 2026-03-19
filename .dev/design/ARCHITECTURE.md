@@ -212,10 +212,11 @@ Methods where our implementation is more efficient than `AbstractMap`'s default
 `entrySet()`.
 
 Methods that use `setValue()` internally (`replace()`, `replaceAll()`,
-`merge()`, `compute()`, `computeIfPresent()`) are overridden to use `put()`
-and `remove()` instead, since `Entry.setValue()` is not supported (it would
-bypass the bijectivity invariant). Implementing `setValue()` correctly is
-tracked in the backlog.
+`merge()`, `compute()`, `computeIfPresent()`) previously required manual
+overrides to use `put()` and `remove()` instead. Since `Entry.setValue()` now
+delegates to `put()` and maintains bijectivity, these overrides are no longer
+necessary for correctness, but are kept for clarity and to avoid relying on
+`AbstractMap`'s internal behaviour.
 
 `SynchronizedSymmetricMap` does not extend `AbstractMap` — it delegates all
 operations to its inner `UnsynchronizedSymmetricMap` and protects them with a
@@ -263,14 +264,19 @@ the cost of copying the entry set. This cost is documented in the Javadoc.
 
 ---
 
-### UnsynchronizedSymmetricMapWhiteBoxTest
+### `Entry` holds no reference to its map — `setValue()` delegated to `EntrySetView`
 
-A dedicated white-box test class (`UnsynchronizedSymmetricMapWhiteBoxTest`) is added to verify the internal invariants and implementation details of `UnsynchronizedSymmetricMap`. This test covers:
-- Structure and integrity of the bucket array and collision chains (key and value chains)
-- Correctness of internal state after operations (e.g., no orphaned entries, both chains updated)
-- Edge cases not observable via the public API (e.g., hash collisions, internal resizing, entry reuse)
-- Invariants: bijectivity, no duplicate keys/values, consistency between chains
+`UnsynchronizedSymmetricMap.Entry` does not store a reference to its enclosing
+map. `setValue()` is instead implemented in the anonymous `Map.Entry` wrapper
+returned by `EntrySetView.iterator()`, which accesses the map via
+`UnsynchronizedSymmetricMap.this.put()`.
 
-**Rationale:** Black-box tests validate the public contract, but white-box tests are necessary to ensure the correctness of the internal data structure, especially for complex invariants and performance-critical paths.
+**Alternative considered:** storing a `final UnsynchronizedSymmetricMap<K, V> map`
+reference in each `Entry`, as is common in `HashMap`-style implementations.
 
----
+**Reason for rejection:** every `Entry` would carry an extra reference,
+increasing memory overhead proportionally to the number of entries. Since
+`setValue()` is only meaningful when an entry is obtained through `entrySet()`,
+delegating it to the `EntrySetView` iterator is both more memory-efficient and
+more consistent with the JDK's own `HashMap` design, where `Node` does not
+reference its map.

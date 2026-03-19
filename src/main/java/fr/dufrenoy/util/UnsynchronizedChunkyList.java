@@ -527,7 +527,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
      *
      * <p>This method is package-private and intended for testing purposes only.
      */
-    int countChunks() {
+    final int countChunks() {
         int count = 0;
         Chunk current = firstChunk;
         while (current != null) {

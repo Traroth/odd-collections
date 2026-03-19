@@ -1,4 +1,3 @@
-
 # Workflow — odd-collections
 
 This document defines the standard workflow for implementing or modifying
@@ -19,11 +18,10 @@ The development workflow follows a **design‑first and validation‑driven appr
 4. Update `BACKLOG.md`
 5. Implementation
 6. Static analysis
-7. Refactoring
-8. Tests
-9. Test coverage review
-10. Documentation
-11. Session wrap‑up
+7. Tests
+8. Test coverage review
+9. Documentation
+10. Session wrap‑up
 
 Each step has a specific purpose and should not be skipped.
 
@@ -93,7 +91,9 @@ Typical entries include:
 - known limitations
 - future improvements
 
-Each task must be represented as a checklist item.
+Each task must be represented as a checklist item. Move completed tasks to
+the `## Done` section immediately when they are finished — do not leave
+completed items checked in the active sections.
 
 ---
 
@@ -142,24 +142,23 @@ Resolve all **Critical issues** before continuing.
 
 ---
 
-## 7. Refactoring
+## 7. Tests
 
-Run the `refactor-class` skill if the class has become complex.
+Write the three test classes.
 
-The goal is to:
+### Interface contract tests
 
-- simplify long methods
-- extract helper methods
-- remove duplicated logic
-- improve readability
+`FooTest` (uses `MockFoo`)
 
-Refactoring must **not change observable behaviour**.
+These tests verify the **interface contract in isolation**.
 
----
+They must cover:
 
-## 8. Tests
+- that the methods exist and behave as documented
+- that enums are correct
+- that exceptions are thrown at the right places
 
-Write the two test classes.
+They must be writable without reading any concrete implementation.
 
 ### Black‑box tests
 
@@ -172,6 +171,7 @@ They must cover:
 - normal behaviour
 - boundary conditions
 - error scenarios
+- concurrency guarantees (for synchronized implementations)
 
 They should be writable **without reading the implementation**.
 
@@ -185,12 +185,13 @@ These tests target **implementation risks**, such as:
 - collision scenarios
 - structural invariants
 - concurrent modification cases
+- lock ordering
 
 Each test must explain **why the scenario is risky**.
 
 ---
 
-## 9. Test coverage review
+## 8. Test coverage review
 
 Run the `test-coverage-review` skill.
 
@@ -205,7 +206,7 @@ Add missing tests if necessary.
 
 ---
 
-## 10. Documentation
+## 9. Documentation
 
 Update project documentation when public behaviour changes.
 
@@ -213,14 +214,21 @@ This may include:
 
 - `README.md`
 - `ARCHITECTURE.md`
+- `INVARIANTS.md`
 
-Run the `update-readme` skill when a new class or public API change is introduced.
+Run the `update-readme` skill when a new class or public API change is
+introduced.
+
+Run the `api-consistency-check` skill when new public methods are added.
+
+Run the `architecture-drift-check` skill after significant refactoring or
+before a release.
 
 Ensure examples compile against the real API.
 
 ---
 
-## 11. Session wrap‑up
+## 10. Session wrap‑up
 
 At the end of a session, run:
 
@@ -243,10 +251,16 @@ This step should never be skipped.
 
 Never implement a structure before its invariants and behaviour are defined.
 
+### Fix known issues before adding new code
+
+Never advance on new code while known bugs or issues remain unresolved.
+Record all known issues in `BACKLOG.md` and resolve them first.
+
 ### Invariants must always hold
 
 All mutation methods must preserve class invariants.
-If invariants are temporarily broken during a method, they must be restored before returning.
+If invariants are temporarily broken during a method, they must be restored
+before returning.
 
 ### Prefer clarity over cleverness
 
@@ -267,11 +281,12 @@ Avoid generating large complex classes in a single step.
 
 ## Skills used in the workflow
 
-| Skill | Role |
-|------|------|
-| `design-review` | Validate architecture before coding |
-| `static-analysis` | Detect structural and contract issues |
-| `refactor-class` | Improve code structure |
-| `test-coverage-review` | Verify test completeness |
-| `update-backlog` | Maintain project task tracking |
-| `update-readme` | Keep documentation up to date |
+| Skill                      | Role                                          |
+|----------------------------|-----------------------------------------------|
+| `design-review`            | Validate architecture before coding           |
+| `static-analysis`          | Detect structural and contract issues         |
+| `test-coverage-review`     | Verify test completeness                      |
+| `api-consistency-check`    | Verify API consistency across the library     |
+| `architecture-drift-check` | Verify implementation matches design          |
+| `update-backlog`           | Maintain project task tracking                |
+| `update-readme`            | Keep documentation up to date                 |

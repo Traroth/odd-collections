@@ -28,12 +28,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Black-box tests for {@link SymmetricMap}, based solely on the public contract
@@ -658,11 +653,21 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
 
     @Test
     public void testEntrySet_setValue_HandlesConflicts() {
-        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+        SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>(); // ou SynchronizedSymmetricMap
         map.put("a", 1);
         map.put("b", 2);
-        Map.Entry<String, Integer> entry = map.entrySet().iterator().next();
-        // Assume "a" -> 1, set to 2, which conflicts with "b" -> 2
+
+        // Find the entry for "a" explicitly, regardless of iteration order
+        Map.Entry<String, Integer> entry = null;
+        for (Map.Entry<String, Integer> e : map.entrySet()) {
+            if ("a".equals(e.getKey())) {
+                entry = e;
+                break;
+            }
+        }
+        assertNotNull(entry);
+
+        // Set value to 2, which conflicts with "b" -> 2
         Integer oldValue = entry.setValue(2);
         assertEquals(1, oldValue);
         assertEquals(2, map.get("a"));

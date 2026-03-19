@@ -5,4 +5,5 @@ module fr.dufrenoy.util {
     requires java.base;
 
     exports fr.dufrenoy.util;
+    opens fr.dufrenoy.util;
 }

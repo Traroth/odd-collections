@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+
+    <!-- CT_CONSTRUCTOR_THROW: ArgumentException in constructors is intentional.
+         Classes are non-final by design to allow extension by library users. -->
+    <Match>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+        <Or>
+            <Class name="fr.dufrenoy.util.UnsynchronizedChunkyList"/>
+            <Class name="fr.dufrenoy.util.UnsynchronizedSymmetricMap"/>
+        </Or>
+    </Match>
+
+    <!-- EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WITH_THIS: false positive introduced
+         by the anonymous wrapper in EntrySetView.iterator(). The instanceof
+         check targets Map.Entry, which is correct. -->
+    <Match>
+        <Bug pattern="EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WITH_THIS"/>
+        <Class name="fr.dufrenoy.util.UnsynchronizedSymmetricMap$EntrySetView$1$1"/>
+    </Match>
+
+</FindBugsFilter>

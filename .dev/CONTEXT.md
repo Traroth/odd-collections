@@ -18,12 +18,16 @@ before generating or modifying any code.
 Skills encode recurring workflows. Read the relevant skill file before starting
 the corresponding task.
 
-| Task                                        | Skill                                      |
-|---------------------------------------------|--------------------------------------------|
-| Generate or significantly modify a class    | `.dev/skills/static-analysis/SKILL.md`     |
-| Create a new class                          | `.dev/skills/new-class/SKILL.md`           |
-| End of session                              | `.dev/skills/update-backlog/SKILL.md`      |
-| End of session (if API or roadmap changed)  | `.dev/skills/update-readme/SKILL.md`       |
+| Task                                                        | Skill                                              |
+|-------------------------------------------------------------|----------------------------------------------------|
+| Generate or significantly modify a class                    | `.dev/skills/static-analysis/SKILL.md`             |
+| Create a new class                                          | `.dev/skills/new-class/SKILL.md`                   |
+| Before implementing a new class or data structure           | `.dev/skills/design-review/SKILL.md`               |
+| After writing tests or when coverage seems insufficient     | `.dev/skills/test-coverage-review/SKILL.md`        |
+| After adding public methods or before a release             | `.dev/skills/api-consistency-check/SKILL.md`       |
+| After significant refactoring or before a release           | `.dev/skills/architecture-drift-check/SKILL.md`    |
+| End of session                                              | `.dev/skills/update-backlog/SKILL.md`              |
+| End of session (if API or roadmap changed)                  | `.dev/skills/update-readme/SKILL.md`               |
 
 ## Project overview
 
@@ -32,10 +36,16 @@ licensed under the GNU Lesser General Public License v3.
 
 ### Current classes
 
-- `fr.dufrenoy.util.SymmetricMap<K, V>` — a bijective map backed by a single
-  array of buckets with two independent collision chains per bucket, one indexed
-  by key hash and one by value hash. Implements `java.util.Map` via
-  `AbstractMap`.
+- `fr.dufrenoy.util.SymmetricMap<K, V>` — a bijective map interface extending
+  `java.util.Map`. Declares symmetric operations: `getKey()`, `removeByValue()`,
+  `safePut()`, and `inverse()`. Values are unique by definition, so `values()`
+  returns `Set<V>`. Two implementations are provided:
+  - `UnsynchronizedSymmetricMap` — backed by a single array of buckets with two
+    independent collision chains per bucket (one by key hash, one by value hash),
+    extending `AbstractMap`. Not thread-safe.
+  - `SynchronizedSymmetricMap` — delegates to `UnsynchronizedSymmetricMap`,
+    protected by a `ReentrantReadWriteLock`. Iterators are snapshot-based.
+
 - `fr.dufrenoy.util.ChunkyList<E>` — a Java implementation of an unrolled linked
   list, with an unsynchronized and a thread-safe variant backed by a
   `ReentrantReadWriteLock`. Features configurable growing and shrinking
@@ -43,7 +53,6 @@ licensed under the GNU Lesser General Public License v3.
   `reorganize()` operation to compact sparsely filled chunks.
 
 ### Repository structure
-
 ```
 src/
   main/java/fr/dufrenoy/util/
@@ -72,8 +81,6 @@ src/
     architecture-drift-check/
       SKILL.md
     design-review/
-      SKILL.md
-    refactor-class/
       SKILL.md
     test-coverage-review/
       SKILL.md

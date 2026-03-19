@@ -247,7 +247,7 @@ automatically with Maven:
 <plugin>
   <groupId>com.github.spotbugs</groupId>
   <artifactId>spotbugs-maven-plugin</artifactId>
-  <version>4.8.3</version>
+  <version>4.9.8.2</version>
 </plugin>
 ```
 
