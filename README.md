@@ -118,11 +118,83 @@ list.reorganize(false);
 
 ---
 
+### SymmetricMap
+
+A **bijective map** implementation — a map where both keys and values are unique, providing O(1) average lookup in both directions.
+
+#### How it works
+
+Unlike a standard `Map`, a `SymmetricMap` enforces uniqueness on both keys and values. Each entry can be looked up by key or by value with equal efficiency.
+
+```
+          get("a") ──▶ 1
+"a" ◀──▶ 1
+          getKey(1) ──▶ "a"
+```
+
+The internal structure is a **single array of buckets**, each holding two independent collision chains — one indexed by key hash, one by value hash. Each entry belongs to both chains simultaneously, providing O(1) average access in both directions without duplicating storage.
+
+#### Architecture
+
+| Type | Role |
+|---|---|
+| `SymmetricMap<K, V>` | Interface extending `java.util.Map`, declaring the symmetric contract |
+| `UnsynchronizedSymmetricMap<K, V>` | Standard implementation extending `AbstractMap` — not thread-safe |
+| `SynchronizedSymmetricMap<K, V>` | Thread-safe implementation backed by a `ReentrantReadWriteLock` |
+
+#### Features
+
+- Full `java.util.Map` implementation via `AbstractMap` (`get`, `put`, `remove`, `containsKey`, `containsValue`, `size`, `clear`, ...)
+- **Reverse lookup** via `getKey(V value)` — returns `Optional<K>`
+- **Permissive insertion** via `put(K, V)` — silently removes conflicting entries to maintain bijectivity
+- **Strict insertion** via `safePut(K, V)` — throws `IllegalArgumentException` if the key or value already exists
+- **Reverse removal** via `removeByValue(V value)` — returns `Optional<K>`
+- **Inverse map** via `inverse()` — returns an independent copy with keys and values swapped
+- `values()` returns `Set<V>` rather than `Collection<V>`, reflecting the uniqueness of values
+- Snapshot-based iterators in `SynchronizedSymmetricMap`
+
+#### Usage
+
+```java
+// Basic usage
+SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
+map.put("a", 1);
+map.put("b", 2);
+
+// Forward lookup
+System.out.println(map.get("a"));        // 1
+
+// Reverse lookup
+System.out.println(map.getKey(1).get()); // "a"
+
+// Strict insertion — throws if key or value already exists
+map.safePut("c", 3);
+
+// Reverse removal
+map.removeByValue(2);                    // removes "b" -> 2
+
+// Inverse map
+SymmetricMap<Integer, String> inv = map.inverse();
+System.out.println(inv.get(1));          // "a"
+
+// Thread-safe
+SymmetricMap<String, Integer> map = new SynchronizedSymmetricMap<>();
+```
+
+#### Thread safety
+
+`UnsynchronizedSymmetricMap` is **not thread-safe**. For concurrent access, use `SynchronizedSymmetricMap`, which is backed by a `ReentrantReadWriteLock`: multiple threads may read concurrently, while writes are exclusive.
+
+Iterators on `keySet()`, `values()`, and `entrySet()` in `SynchronizedSymmetricMap` operate on a **snapshot** of the map taken at the time of the call.
+
+> **Memory note:** each call to an iterator copies the entire entry set. Avoid iterating over very large maps in memory-constrained environments.
+
+---
+
 ## Roadmap
 
 - **`SortedChunkyList`** — a `ChunkyList` that maintains elements in sorted order using a `Comparator`, with O(log n) insertion via binary search across chunks
 - **`TreeList`** — a `List` backed by a red-black order-statistic tree, providing O(log n) access by index
-- **`BiMap`** — a bijective map where values are as unique as keys, backed by a single array of collision chains with O(1) average lookup in both directions
 - **`MultiMap`** — a multidimensional map with a configurable number of dimensions, supporting partial key lookups that return sub-maps
 
 ---
@@ -155,9 +227,10 @@ universal standards or conventions:
   community consensus, which often restricts it to stream operations.
   Here it is the default for any method whose result may be absent,
   except where an interface contract forbids it.
-- **Two test classes per tested class** (`BlackBoxTest` / `WhiteBoxTest`) —
-  a stricter separation than most projects use, chosen to keep contract
-  tests independent from implementation knowledge.
+- **Three test classes per tested class** (`FooTest` / `BlackBoxTest` /
+  `WhiteBoxTest`) — a stricter separation than most projects use, chosen
+  to keep interface contract tests, implementation contract tests, and
+  internal structure tests fully independent.
 - **`inverse()` returns a copy, not a live view** — unlike Guava's `BiMap`,
   by design. See `.dev/design/ARCHITECTURE.md` for the rationale.
 - **Skills as Markdown files in `.dev/skills/`** — Claude reads these files
@@ -170,9 +243,11 @@ universal standards or conventions:
 | File | Purpose |
 |------|---------|
 | `.dev/CONTEXT.md` | Entry point — read this first at the start of every session |
+| `.dev/WORKFLOW.md` | Required order of operations for any class creation or modification |
 | `.dev/standards/JAVA_STANDARDS.md` | Coding conventions for all Java in this project |
 | `.dev/backlog/BACKLOG.md` | Pending tasks and known issues, updated each session |
 | `.dev/design/ARCHITECTURE.md` | Key design decisions and rationale for each class |
+| `.dev/design/INVARIANTS.md` | Structural invariants for all data structures |
 
 ### Skills
 
@@ -183,6 +258,10 @@ relevant skill before starting the corresponding task.
 |-------|------|-------------|
 | Static analysis | `.dev/skills/static-analysis/SKILL.md` | After every class generation or significant modification |
 | New class | `.dev/skills/new-class/SKILL.md` | When scaffolding a new data structure |
+| Design review | `.dev/skills/design-review/SKILL.md` | Before implementing a new class or data structure |
+| Test coverage review | `.dev/skills/test-coverage-review/SKILL.md` | After writing tests or when coverage seems insufficient |
+| API consistency check | `.dev/skills/api-consistency-check/SKILL.md` | After adding public methods or before a release |
+| Architecture drift check | `.dev/skills/architecture-drift-check/SKILL.md` | After significant refactoring or before a release |
 | Update backlog | `.dev/skills/update-backlog/SKILL.md` | At the end of every session |
 | Update README | `.dev/skills/update-readme/SKILL.md` | When the public API or roadmap changes, and at end of session |
 

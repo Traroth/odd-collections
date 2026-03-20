@@ -30,7 +30,6 @@ of each session.
 
 - [ ] Bring `ChunkyList` interface into compliance with Oracle Java guidelines
   (beginning file comment, `package`/comment order, explicit imports)
-- [ ] Create `SynchronizedChunkyListWhiteBoxTest`
 - [ ] Fix Checkstyle warnings (indentation, wildcard imports, header/package
   order, NeedBraces, variable names)
 
@@ -76,3 +75,6 @@ of each session.
 - [x] Create `UnsynchronizedChunkyListBlackBoxTest`
 - [x] Create `UnsynchronizedChunkyListWhiteBoxTest`
 - [x] Create `SynchronizedChunkyListBlackBoxTest`
+- [x] Create SynchronizedChunkyListWhiteBoxTest
+- [x] Add final to countChunks() in UnsynchronizedChunkyList
+- [x] Add countChunks() to SynchronizedChunkyList
