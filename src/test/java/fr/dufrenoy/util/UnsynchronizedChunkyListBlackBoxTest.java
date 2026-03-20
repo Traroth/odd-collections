@@ -1,3 +1,25 @@
+/*
+ * UnsynchronizedChunkyListBlackBoxTest.java
+ *
+ * Version 1.0
+ *
+ * odd-collections - A collection of unconventional Java data structures
+ * Copyright (C) 2026  Dufrenoy
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, see
+ * <https://www.gnu.org/licenses/>.
+ */
 package fr.dufrenoy.util;
 
 import static fr.dufrenoy.util.ChunkyList.GrowingStrategy;
@@ -7,12 +29,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 
 /**
- * Tests BLACK BOX de l'implémentation UnsynchronizedChunkyList.
- * Ces tests vérifient le comportement fonctionnel sans accéder aux détails internes.
+ * Black-box tests for {@link UnsynchronizedChunkyList}, based solely on the
+ * public contract. No knowledge of the internal implementation is assumed.
  */
 public class UnsynchronizedChunkyListBlackBoxTest {
 
-    // ===== Tests de reorganize =====
+    // ===== reorganize tests =====
+
     @Test
     public void testReorganize_PreservesOrder() {
         UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
@@ -32,7 +55,8 @@ public class UnsynchronizedChunkyListBlackBoxTest {
         }
     }
 
-    // ===== Tests de Spliterator et Stream =====
+    // ===== Spliterator and Stream tests =====
+
     @Test
     public void testSpliterator_Characteristics() {
         UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(2);
@@ -84,7 +108,7 @@ public class UnsynchronizedChunkyListBlackBoxTest {
         assertTrue(result.stream().allMatch(i -> i % 2 == 0));
     }
 
-    // ===== Tests du constructeur de copie avec nouvelle chunkSize =====
+    // ===== Copy constructor with new chunkSize tests =====
 
     @Test
     public void testCopyConstructor_MixedChunks_PreservesOrder() {

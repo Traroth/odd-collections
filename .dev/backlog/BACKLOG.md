@@ -12,10 +12,27 @@ of each session.
 - [ ] `SortedChunkyList`
 - [ ] `TreeList`
 - [ ] `MultiMap`
-- [ ] Experiment with JML
+- [ ] `Tuple` — a type-safe immutable tuple system without one class per arity
+- [ ] `CircularBuffer` — a circular doubly-linked list backed by a ring of nodes
+- [ ] Migrate baseline from Java 9 to Java 11
+- [ ] Set up multi-release JAR with Java 21 variant
+- [ ] Update README requirements section (Java 11 baseline, Java 21 variant)
 - [ ] Update project description for GitHub (`pom.xml` and repository)
-- [ ] Complete INVARIANTS.md with concrete invariants for SymmetricMap and
-  ChunkyList — articulate with JML annotations
+- [ ] Port odd-collections to TypeScript
+- [ ] Port odd-collections to Python
+
+## JML / Formal verification
+
+- [ ] Add JML `@invariant` annotations to `UnsynchronizedSymmetricMap`
+- [ ] Add JML `@invariant` annotations to `UnsynchronizedChunkyList`
+- [ ] Add JML `@requires` / `@ensures` contracts to key mutation methods
+  (`put`, `remove`, `removeByValue`, `safePut`, `insertEntry`, `removeEntry`)
+- [ ] Complete `INVARIANTS.md` with concrete invariants derived from JML
+  annotations
+- [ ] Explore OpenJML or JMLUnit for test generation from JML contracts
+- [ ] Create `jml-design` skill — write JML contracts during design phase
+- [ ] Create `jml-test-generation` skill — generate tests from JML contracts
+- [ ] Explore KeY integration for formal program verification
 
 ---
 
@@ -30,8 +47,9 @@ of each session.
 
 - [ ] Bring `ChunkyList` interface into compliance with Oracle Java guidelines
   (beginning file comment, `package`/comment order, explicit imports)
-- [ ] Fix Checkstyle warnings (indentation, wildcard imports, header/package
-  order, NeedBraces, variable names)
+- [ ] Fix remaining Checkstyle warnings in `UnsynchronizedChunkyList` and
+  `SynchronizedChunkyList` (`NeedBraces`, `MissingSwitchDefault`, wildcard
+  imports, `EmptyLineSeparator`, unused imports)
 
 ---
 
@@ -43,6 +61,16 @@ of each session.
   `ARCHITECTURE.md`, skills (`static-analysis`, `new-class`, `update-backlog`,
   `update-readme`)
 - [x] Add `spotbugs-exclude.xml` and configure in `pom.xml`
+- [x] Replace `google_checks.xml` with custom `checkstyle.xml` (4-space
+  indentation, 120-char line length, `module-info.java` excluded)
+- [x] Upgrade `maven-checkstyle-plugin` from `3.3.1` to `3.6.0`
+- [x] Add naming conventions section to `JAVA_STANDARDS.md` (exception
+  parameter names: `ioe`, `npe`, `iae`...)
+- [x] Translate all French comments in
+  `SynchronizedSymmetricMapWhiteBoxTest.java` to English
+- [x] Remove unused imports from `UnsynchronizedSymmetricMap` (`ArrayList`,
+  `List`, `BiFunction`, `Collection`) and `SynchronizedSymmetricMap`
+  (`Collection`)
 
 ### SymmetricMap
 

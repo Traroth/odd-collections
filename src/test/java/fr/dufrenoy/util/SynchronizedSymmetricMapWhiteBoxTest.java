@@ -24,15 +24,16 @@ package fr.dufrenoy.util;
 
 import org.junit.jupiter.api.Test;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * White-box tests pour SynchronizedSymmetricMap :
- * - Vérification de l'intégrité des chaînes de collisions (par clé et par valeur) dans la map interne
- * - Invariants internes (bijectivité, absence de doublons, cohérence des chaînes)
- * - Cas limites (collisions de hash, redimensionnement, réutilisation d'Entry)
+ * White-box tests for SynchronizedSymmetricMap:
+ * - Integrity of key and value collision chains in the internal map
+ * - Internal invariants (bijectivity, absence of duplicates, chain consistency)
+ * - Edge cases (hash collisions, resize, Entry reuse)
  */
 public class SynchronizedSymmetricMapWhiteBoxTest {
 
@@ -44,12 +45,13 @@ public class SynchronizedSymmetricMapWhiteBoxTest {
         map.put("c", 3);
         map.put("d", 4);
 
-        // Accès à la map interne via la réflexion
+        // Access the inner map via reflection
         Field innerField = SynchronizedSymmetricMap.class.getDeclaredField("inner");
         innerField.setAccessible(true);
-        UnsynchronizedSymmetricMap<String, Integer> inner = (UnsynchronizedSymmetricMap<String, Integer>) innerField.get(map);
+        UnsynchronizedSymmetricMap<String, Integer> inner =
+                (UnsynchronizedSymmetricMap<String, Integer>) innerField.get(map);
 
-        // Accès à la table interne via la réflexion
+        // Access the internal table via reflection
         Field tableField = UnsynchronizedSymmetricMap.class.getDeclaredField("table");
         tableField.setAccessible(true);
         Object[] table = (Object[]) tableField.get(inner);
@@ -57,9 +59,11 @@ public class SynchronizedSymmetricMapWhiteBoxTest {
         Set<Object> entriesByKey = new HashSet<>();
         Set<Object> entriesByValue = new HashSet<>();
 
-        // Parcours des chaînes par clé
+        // Walk key chains
         for (Object bucket : table) {
-            if (bucket == null) continue;
+            if (bucket == null) {
+                continue;
+            }
             Field firstByKeyField = bucket.getClass().getDeclaredField("firstByKey");
             firstByKeyField.setAccessible(true);
             Object entry = firstByKeyField.get(bucket);
@@ -70,9 +74,12 @@ public class SynchronizedSymmetricMapWhiteBoxTest {
                 entry = nextByKeyField.get(entry);
             }
         }
-        // Parcours des chaînes par valeur
+
+        // Walk value chains
         for (Object bucket : table) {
-            if (bucket == null) continue;
+            if (bucket == null) {
+                continue;
+            }
             Field firstByValueField = bucket.getClass().getDeclaredField("firstByValue");
             firstByValueField.setAccessible(true);
             Object entry = firstByValueField.get(bucket);
@@ -83,15 +90,16 @@ public class SynchronizedSymmetricMapWhiteBoxTest {
                 entry = nextByValueField.get(entry);
             }
         }
-        // Les deux ensembles doivent être égaux et de la bonne taille
+
+        // Both sets must be equal and of the correct size
         assertEquals(4, entriesByKey.size());
         assertEquals(4, entriesByValue.size());
         assertEquals(entriesByKey, entriesByValue);
     }
 
     @Test
-    public void testHashCollisions_IntegrityPreserved() throws Exception {
-        // Créer des clés avec le même hash pour forcer des collisions
+    public void testKeyHashCollisions_AllEntriesInSameBucket() throws Exception {
+        // Create keys with the same hash to force collisions
         class CollidingKey {
             private final int value;
             private final int hash;
@@ -108,7 +116,9 @@ public class SynchronizedSymmetricMapWhiteBoxTest {
 
             @Override
             public boolean equals(Object o) {
-                if (!(o instanceof CollidingKey)) return false;
+                if (!(o instanceof CollidingKey)) {
+                    return false;
+                }
                 return ((CollidingKey) o).value == this.value;
             }
 
@@ -119,7 +129,7 @@ public class SynchronizedSymmetricMapWhiteBoxTest {
         }
 
         SynchronizedSymmetricMap<CollidingKey, Integer> map = new SynchronizedSymmetricMap<>();
-        // Toutes ces clés ont le même hash (0)
+        // All these keys share the same hash (0)
         CollidingKey k1 = new CollidingKey(1, 0);
         CollidingKey k2 = new CollidingKey(2, 0);
         CollidingKey k3 = new CollidingKey(3, 0);
@@ -128,23 +138,24 @@ public class SynchronizedSymmetricMapWhiteBoxTest {
         map.put(k2, 20);
         map.put(k3, 30);
 
-        // Vérifier que toutes les entrées sont présentes et accessibles
+        // Verify that all entries are present and accessible
         assertEquals(10, map.get(k1));
         assertEquals(20, map.get(k2));
         assertEquals(30, map.get(k3));
         assertEquals(3, map.size());
 
-        // Accès à la map interne
+        // Access the inner map via reflection
         Field innerField = SynchronizedSymmetricMap.class.getDeclaredField("inner");
         innerField.setAccessible(true);
-        UnsynchronizedSymmetricMap<CollidingKey, Integer> inner = (UnsynchronizedSymmetricMap<CollidingKey, Integer>) innerField.get(map);
+        UnsynchronizedSymmetricMap<CollidingKey, Integer> inner =
+                (UnsynchronizedSymmetricMap<CollidingKey, Integer>) innerField.get(map);
 
-        // Vérifier l'intégrité des chaînes internes
+        // Verify internal chain integrity
         Field tableField = UnsynchronizedSymmetricMap.class.getDeclaredField("table");
         tableField.setAccessible(true);
         Object[] table = (Object[]) tableField.get(inner);
 
-        // Toutes les entrées devraient être dans le même bucket (index 0)
+        // All entries should be in the same bucket (index 0)
         Object bucket = table[0];
         Field firstByKeyField = bucket.getClass().getDeclaredField("firstByKey");
         firstByKeyField.setAccessible(true);
@@ -161,28 +172,30 @@ public class SynchronizedSymmetricMapWhiteBoxTest {
 
     @Test
     public void testResize_ChainsRebuiltCorrectly() throws Exception {
-        SynchronizedSymmetricMap<Integer, Integer> map = new SynchronizedSymmetricMap<>(4, 0.75f); // Petite capacité pour forcer le resize tôt
+        // Small initial capacity to trigger resize early
+        SynchronizedSymmetricMap<Integer, Integer> map = new SynchronizedSymmetricMap<>(4, 0.75f);
 
-        // Ajouter suffisamment d'éléments pour déclencher un resize
+        // Add enough entries to trigger a resize
         for (int i = 0; i < 20; i++) {
             map.put(i, i + 100);
         }
 
-        // Vérifier que la taille est correcte
+        // Verify that the size is correct
         assertEquals(20, map.size());
 
-        // Vérifier que toutes les entrées sont accessibles
+        // Verify that all entries are accessible
         for (int i = 0; i < 20; i++) {
             assertEquals(i + 100, map.get(i));
             assertEquals(i, map.getKey(i + 100).get());
         }
 
-        // Accès à la map interne
+        // Access the inner map via reflection
         Field innerField = SynchronizedSymmetricMap.class.getDeclaredField("inner");
         innerField.setAccessible(true);
-        UnsynchronizedSymmetricMap<Integer, Integer> inner = (UnsynchronizedSymmetricMap<Integer, Integer>) innerField.get(map);
+        UnsynchronizedSymmetricMap<Integer, Integer> inner =
+                (UnsynchronizedSymmetricMap<Integer, Integer>) innerField.get(map);
 
-        // Vérifier l'intégrité des chaînes internes après resize
+        // Verify internal chain integrity after resize
         Field tableField = UnsynchronizedSymmetricMap.class.getDeclaredField("table");
         tableField.setAccessible(true);
         Object[] table = (Object[]) tableField.get(inner);
@@ -190,9 +203,11 @@ public class SynchronizedSymmetricMapWhiteBoxTest {
         Set<Object> entriesByKey = new HashSet<>();
         Set<Object> entriesByValue = new HashSet<>();
 
-        // Parcours des chaînes par clé
+        // Walk key chains
         for (Object bucket : table) {
-            if (bucket == null) continue;
+            if (bucket == null) {
+                continue;
+            }
             Field firstByKeyField = bucket.getClass().getDeclaredField("firstByKey");
             firstByKeyField.setAccessible(true);
             Object entry = firstByKeyField.get(bucket);
@@ -203,9 +218,12 @@ public class SynchronizedSymmetricMapWhiteBoxTest {
                 entry = nextByKeyField.get(entry);
             }
         }
-        // Parcours des chaînes par valeur
+
+        // Walk value chains
         for (Object bucket : table) {
-            if (bucket == null) continue;
+            if (bucket == null) {
+                continue;
+            }
             Field firstByValueField = bucket.getClass().getDeclaredField("firstByValue");
             firstByValueField.setAccessible(true);
             Object entry = firstByValueField.get(bucket);
@@ -216,7 +234,8 @@ public class SynchronizedSymmetricMapWhiteBoxTest {
                 entry = nextByValueField.get(entry);
             }
         }
-        // Les deux ensembles doivent être égaux et de la bonne taille
+
+        // Both sets must be equal and of the correct size
         assertEquals(20, entriesByKey.size());
         assertEquals(20, entriesByValue.size());
         assertEquals(entriesByKey, entriesByValue);

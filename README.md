@@ -165,10 +165,10 @@ map.put("b", 2);
 System.out.println(map.get("a"));        // 1
 
 // Reverse lookup
-System.out.println(map.getKey(1).get()); // "a"
+        System.out.println(map.getKey(1).get()); // "a"
 
 // Strict insertion — throws if key or value already exists
-map.safePut("c", 3);
+        map.safePut("c", 3);
 
 // Reverse removal
 map.removeByValue(2);                    // removes "b" -> 2
@@ -193,6 +193,8 @@ Iterators on `keySet()`, `values()`, and `entrySet()` in `SynchronizedSymmetricM
 
 ## Roadmap
 
+- **`Tuple`** — a type-safe immutable tuple system without one class per arity, with Java 21 record-based implementation via multi-release JAR
+- **`CircularBuffer`** — a circular doubly-linked list backed by a ring of nodes
 - **`SortedChunkyList`** — a `ChunkyList` that maintains elements in sorted order using a `Comparator`, with O(log n) insertion via binary search across chunks
 - **`TreeList`** — a `List` backed by a red-black order-statistic tree, providing O(log n) access by index
 - **`MultiMap`** — a multidimensional map with a configurable number of dimensions, supporting partial key lookups that return sub-maps
@@ -201,10 +203,14 @@ Iterators on `keySet()`, `values()`, and `entrySet()` in `SynchronizedSymmetricM
 
 ## Requirements
 
-- Java 9 or later
+- **Java 11 or later** to use this library
+- **Java 11 or later** to build this project (required by SpotBugs 4.9.x and
+  Checkstyle 10.x)
+- A **Java 21 runtime** is recommended to take advantage of the optimized
+  implementations provided via the multi-release JAR (planned)
 
-This library is packaged as a named module (`fr.dufrenoy.util`). To use it as a dependency in a modular project, add the following to your `module-info.java`:
-
+This library is packaged as a named module (`fr.dufrenoy.util`). To use it as
+a dependency in a modular project, add the following to your `module-info.java`:
 ```java
 requires fr.dufrenoy.util;
 ```

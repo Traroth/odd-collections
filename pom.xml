@@ -34,6 +34,7 @@
   </dependencies>
 
   <build>
+
     <plugins>
 
       <!-- ─── Compilation ──────────────────────────────────────────────────── -->
@@ -81,12 +82,10 @@
         </executions>
       </plugin>
 
-      <!-- ─── Static analysis (Checkstyle) ────────────────────────────────── -->
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.3.1</version>
+        <version>3.6.0</version>
         <executions>
           <execution>
             <id>checkstyle</id>
@@ -97,7 +96,7 @@
           </execution>
         </executions>
         <configuration>
-          <configLocation>google_checks.xml</configLocation>
+          <configLocation>checkstyle.xml</configLocation>
           <failsOnError>false</failsOnError>
           <consoleOutput>true</consoleOutput>
         </configuration>

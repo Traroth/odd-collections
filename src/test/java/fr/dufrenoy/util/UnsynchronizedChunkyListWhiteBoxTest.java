@@ -1,3 +1,25 @@
+/*
+ * UnsynchronizedChunkyListWhiteBoxTest.java
+ *
+ * Version 1.0
+ *
+ * odd-collections - A collection of unconventional Java data structures
+ * Copyright (C) 2026  Dufrenoy
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, see
+ * <https://www.gnu.org/licenses/>.
+ */
 package fr.dufrenoy.util;
 
 import static fr.dufrenoy.util.ChunkyList.GrowingStrategy;
@@ -7,12 +29,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 
 /**
- * Tests WHITE BOX de l'implémentation UnsynchronizedChunkyList.
- * Ces tests accèdent aux détails internes pour vérifier la structure des chunks.
+ * White-box tests for {@link UnsynchronizedChunkyList}.
+ * These tests access internal details to verify the chunk structure.
  */
 public class UnsynchronizedChunkyListWhiteBoxTest {
 
-    // ===== Tests de la structure interne =====
+    // ===== Internal chunk structure tests =====
+
     @Test
     public void testInternalChunkStructure_WithSmallChunks() {
         UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(2);
@@ -49,7 +72,8 @@ public class UnsynchronizedChunkyListWhiteBoxTest {
         assertTrue(list.countChunks() >= 2);
     }
 
-    // ===== Tests des stratégies =====
+    // ===== Strategy tests =====
+
     @Test
     public void testOverflowStrategy() {
         UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(2);
@@ -101,7 +125,8 @@ public class UnsynchronizedChunkyListWhiteBoxTest {
         assertEquals(1, list.countChunks());
     }
 
-    // ===== Tests de reorganize =====
+    // ===== reorganize tests =====
+
     @Test
     public void testReorganize_WithSparseChunks() {
         UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
@@ -120,7 +145,7 @@ public class UnsynchronizedChunkyListWhiteBoxTest {
         assertTrue(chunksAfter <= chunksBefore);
     }
 
-    // ===== Tests du constructeur de copie avec nouvelle chunkSize =====
+    // ===== Copy constructor with new chunkSize tests =====
 
     @Test
     public void testCopyConstructor_ChunksFit_PreservesStructure() {

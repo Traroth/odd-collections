@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<module name="Checker">
+
+    <property name="severity" value="warning"/>
+    <property name="fileExtensions" value="java"/>
+
+    <!-- ─── Exclusions ─────────────────────────────────────────────────────── -->
+    <!-- module-info.java uses Java 9 module syntax not supported by the       -->
+    <!-- bundled Checkstyle parser. It contains no style-relevant content.     -->
+
+    <module name="BeforeExecutionExclusionFileFilter">
+        <property name="fileNamePattern" value="module-info\.java$"/>
+    </module>
+
+    <!-- ─── File-level checks ──────────────────────────────────────────────── -->
+
+    <module name="FileTabCharacter"/>
+    <module name="NewlineAtEndOfFile"/>
+    <module name="LineLength">
+        <property name="max" value="120"/>
+    </module>
+
+    <!-- ─── Tree walker (per-file checks) ─────────────────────────────────── -->
+
+    <module name="TreeWalker">
+
+        <!-- Imports -->
+        <module name="AvoidStarImport"/>
+        <module name="RedundantImport"/>
+        <module name="UnusedImports"/>
+
+        <!-- Naming -->
+        <module name="TypeName"/>
+        <module name="MethodName"/>
+        <module name="ConstantName"/>
+        <module name="MemberName"/>
+        <module name="ParameterName"/>
+
+        <!-- Javadoc -->
+        <module name="JavadocMethod">
+            <property name="accessModifiers" value="public"/>
+        </module>
+        <module name="JavadocType">
+            <property name="scope" value="public"/>
+        </module>
+        <module name="JavadocVariable">
+            <property name="scope" value="public"/>
+        </module>
+
+        <!-- Braces -->
+        <module name="NeedBraces"/>
+        <module name="LeftCurly"/>
+        <module name="RightCurly"/>
+
+        <!-- Whitespace -->
+        <module name="WhitespaceAfter"/>
+        <module name="WhitespaceAround"/>
+        <module name="EmptyLineSeparator">
+            <property name="allowNoEmptyLineBetweenFields" value="true"/>
+        </module>
+
+        <!-- Indentation -->
+        <module name="Indentation">
+            <property name="basicOffset" value="4"/>
+            <property name="braceAdjustment" value="0"/>
+            <property name="caseIndent" value="4"/>
+            <property name="throwsIndent" value="4"/>
+            <property name="lineWrappingIndentation" value="4"/>
+            <property name="arrayInitIndent" value="4"/>
+        </module>
+
+        <!-- Coding -->
+        <module name="MissingSwitchDefault"/>
+        <module name="FallThrough"/>
+        <module name="OneStatementPerLine"/>
+        <module name="EmptyStatement"/>
+        <module name="EqualsHashCode"/>
+
+        <!-- Class design -->
+        <module name="HideUtilityClassConstructor"/>
+
+        <!-- Miscellaneous -->
+        <module name="UpperEll"/>
+        <module name="ArrayTypeStyle"/>
+        <module name="OuterTypeFilename"/>
+
+    </module>
+
+</module>

@@ -1,3 +1,25 @@
+/*
+ * ChunkyListTest.java
+ *
+ * Version 1.0
+ *
+ * odd-collections - A collection of unconventional Java data structures
+ * Copyright (C) 2026  Dufrenoy
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, see
+ * <https://www.gnu.org/licenses/>.
+ */
 package fr.dufrenoy.util;
 
 import static fr.dufrenoy.util.ChunkyList.GrowingStrategy;
@@ -7,12 +29,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 
 /**
- * Tests du contrat de l'interface ChunkyList.
- * Utilise MockChunkyList pour vérifier que l'interface est bien définie.
+ * Interface contract tests for {@link ChunkyList}.
+ * Uses {@link MockChunkyList} to verify that the interface is correctly defined.
  */
 public class ChunkyListTest {
 
-    // ===== Tests des constructeurs =====
+    // ===== Constructor tests =====
+
     @Test
     public void testDefaultConstructor() {
         ChunkyList<String> list = new MockChunkyList<>(100);
@@ -32,7 +55,8 @@ public class ChunkyListTest {
         assertThrows(IllegalArgumentException.class, () -> new MockChunkyList<>(0));
     }
 
-    // ===== Tests des opérations de base =====
+    // ===== Basic operation tests =====
+
     @Test
     public void testAddAndGet() {
         ChunkyList<String> list = new MockChunkyList<>(2);
@@ -99,7 +123,8 @@ public class ChunkyListTest {
         assertTrue(list.isEmpty());
     }
 
-    // ===== Tests des stratégies =====
+    // ===== Strategy tests =====
+
     @Test
     public void testSetGrowingStrategy() {
         ChunkyList<String> list = new MockChunkyList<>(2);
@@ -122,7 +147,8 @@ public class ChunkyListTest {
         assertEquals(ShrinkingStrategy.DISAPPEAR_STRATEGY, list.getCurrentShrinkingStrategy());
     }
 
-    // ===== Tests des exceptions =====
+    // ===== Exception tests =====
+
     @Test
     public void testGet_IndexOutOfBounds() {
         ChunkyList<String> list = new MockChunkyList<>();

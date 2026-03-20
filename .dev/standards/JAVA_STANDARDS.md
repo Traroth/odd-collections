@@ -239,6 +239,9 @@ automatically with Maven:
   <groupId>org.apache.maven.plugins</groupId>
   <artifactId>maven-checkstyle-plugin</artifactId>
   <version>3.3.1</version>
+  <configuration>
+    <configLocation>checkstyle.xml</configLocation>
+  </configuration>
 </plugin>
 ```
 
@@ -263,3 +266,28 @@ automatically with Maven:
 | Security vulnerabilities      |        |            | ✓        |        |
 | English language              | ✓      |            |          |        |
 | Code coverage                 |        |            |          | ✓      |
+
+---
+
+## 8. Naming conventions
+
+### Exception parameters in catch blocks
+
+Exception parameters in `catch` blocks must be named using the initials of the
+exception type in lowercase, derived from its CamelCase name.
+
+Examples:
+
+| Exception type | Parameter name |
+|---|---|
+| `IOException` | `ioe` |
+| `NullPointerException` | `npe` |
+| `IllegalArgumentException` | `iae` |
+| `IllegalStateException` | `ise` |
+| `InterruptedException` | `ie` |
+| `ConcurrentModificationException` | `cme` |
+
+For generic or unknown exception types, `e` is acceptable.
+
+This convention makes the exception type immediately visible at the catch site
+without reading the full type declaration.

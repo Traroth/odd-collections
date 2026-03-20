@@ -1,3 +1,25 @@
+/*
+ * SynchronizedChunkyListBlackBoxTest.java
+ *
+ * Version 1.0
+ *
+ * odd-collections - A collection of unconventional Java data structures
+ * Copyright (C) 2026  Dufrenoy
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, see
+ * <https://www.gnu.org/licenses/>.
+ */
 package fr.dufrenoy.util;
 
 import static fr.dufrenoy.util.ChunkyList.GrowingStrategy;
@@ -9,9 +31,13 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+/**
+ * Black-box tests for {@link SynchronizedChunkyList}, based solely on the
+ * public contract. Includes concurrency tests for thread-safety guarantees.
+ */
 public class SynchronizedChunkyListBlackBoxTest {
 
-    // ===== Tests de délégation de base =====
+    // ===== Basic delegation tests =====
 
     @Test
     public void testAddAndGet() {
@@ -49,7 +75,7 @@ public class SynchronizedChunkyListBlackBoxTest {
         assertEquals(0, list.size());
     }
 
-    // ===== Tests des constructeurs =====
+    // ===== Constructor tests =====
 
     @Test
     public void testCopyConstructor_PreservesContent() {
@@ -111,7 +137,7 @@ public class SynchronizedChunkyListBlackBoxTest {
         }
     }
 
-    // ===== Tests des stratégies =====
+    // ===== Strategy tests =====
 
     @Test
     public void testSetStrategies_Atomic() {
@@ -136,7 +162,7 @@ public class SynchronizedChunkyListBlackBoxTest {
         assertEquals(ShrinkingStrategy.DISAPPEAR_STRATEGY, list.getCurrentShrinkingStrategy());
     }
 
-    // ===== Tests de reorganize =====
+    // ===== reorganize tests =====
 
     @Test
     public void testReorganize_Blocking_PreservesOrder() {
@@ -166,7 +192,7 @@ public class SynchronizedChunkyListBlackBoxTest {
         for (int i = 0; i < list.size(); i++) assertEquals(before.get(i), list.get(i));
     }
 
-    // ===== Tests de thread-safety =====
+    // ===== Thread-safety tests =====
 
     @Test
     public void testConcurrentWrites_PreservesSize() throws InterruptedException {
@@ -228,7 +254,7 @@ public class SynchronizedChunkyListBlackBoxTest {
         assertEquals(0, errors.get());
     }
 
-    // ===== Tests de snapshot =====
+    // ===== Snapshot tests =====
 
     @Test
     public void testIterator_IsSnapshot() {
@@ -238,12 +264,12 @@ public class SynchronizedChunkyListBlackBoxTest {
         list.add("C");
 
         Iterator<String> it = list.iterator();
-        list.add("D"); // modification après création de l'itérateur
+        list.add("D"); // modification after iterator creation
 
         List<String> result = new ArrayList<>();
         it.forEachRemaining(result::add);
 
-        // L'itérateur ne doit pas voir "D"
+        // The iterator must not see "D"
         assertEquals(Arrays.asList("A", "B", "C"), result);
     }
 
@@ -255,7 +281,7 @@ public class SynchronizedChunkyListBlackBoxTest {
         list.add("C");
 
         Spliterator<String> sp = list.spliterator();
-        list.add("D"); // modification après création du spliterator
+        list.add("D"); // modification after spliterator creation
 
         List<String> result = new ArrayList<>();
         sp.forEachRemaining(result::add);
@@ -271,7 +297,7 @@ public class SynchronizedChunkyListBlackBoxTest {
         list.add("C");
 
         List<String> result = list.stream()
-                .peek(e -> list.add("X")) // tentative de modification pendant le stream
+                .peek(e -> list.add("X")) // attempt to modify during stream
                 .collect(Collectors.toList());
 
         assertEquals(Arrays.asList("A", "B", "C"), result);
