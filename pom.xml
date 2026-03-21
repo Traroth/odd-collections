@@ -82,6 +82,8 @@
         </executions>
       </plugin>
 
+      <!-- ─── Static analysis (Checkstyle) ────────────────────────────────── -->
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
@@ -174,4 +176,52 @@
 
     </plugins>
   </build>
+
+  <profiles>
+
+    <!-- ─── OpenJML formal verification ─────────────────────────────────────── -->
+    <!-- Requires OpenJML 21+ installed in WSL (Ubuntu).                        -->
+    <!-- Activate in IntelliJ: Maven panel > Profiles > check 'openjml'         -->
+    <!-- Activate on command line: mvn verify -P openjml                         -->
+
+    <profile>
+      <id>openjml</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.1.0</version>
+            <executions>
+              <execution>
+                <id>openjml-verify</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>wsl</executable>
+                  <arguments>
+                    <argument>/home/alexis/openjml/openjml</argument>
+                    <argument>--esc</argument>
+                    <argument>--progress</argument>
+                    <argument>-sourcepath</argument>
+                    <argument>/mnt/c/Users/PC/IdeaProjects/odd-collections/src/main/java</argument>
+                    <argument>/mnt/c/Users/PC/IdeaProjects/odd-collections/src/main/java/fr/dufrenoy/util/UnsynchronizedSymmetricMap.java</argument>
+                  </arguments>
+                  <successCodes>
+                    <successCode>0</successCode>
+                    <successCode>1</successCode>
+                    <successCode>2</successCode>
+                  </successCodes>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+  </profiles>
+
 </project>
