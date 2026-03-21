@@ -23,13 +23,15 @@ of each session.
 
 ## JML / Formal verification
 
+- [ ] Fix 4 OpenJML errors: `strictly_pure` methods may not call `spec_pure`
+  methods — `size()` in `KeySetView`, `ValueSetView`, `EntrySetView`
 - [ ] Add JML `@invariant` annotations to `UnsynchronizedSymmetricMap`
 - [ ] Add JML `@invariant` annotations to `UnsynchronizedChunkyList`
 - [ ] Add JML `@requires` / `@ensures` contracts to key mutation methods
   (`put`, `remove`, `removeByValue`, `safePut`, `insertEntry`, `removeEntry`)
 - [ ] Complete `INVARIANTS.md` with concrete invariants derived from JML
   annotations
-- [ ] Explore OpenJML or JMLUnit for test generation from JML contracts
+- [ ] Explore JMLUnit for test generation from JML contracts
 - [ ] Create `jml-design` skill — write JML contracts during design phase
 - [ ] Create `jml-test-generation` skill — generate tests from JML contracts
 - [ ] Explore KeY integration for formal program verification
@@ -71,6 +73,11 @@ of each session.
 - [x] Remove unused imports from `UnsynchronizedSymmetricMap` (`ArrayList`,
   `List`, `BiFunction`, `Collection`) and `SynchronizedSymmetricMap`
   (`Collection`)
+- [x] Integrate OpenJML 21-0.23 in Maven via `exec-maven-plugin` — called
+  via WSL, in an optional `openjml` profile (activate with `-P openjml` or
+  via IntelliJ Maven panel)
+- [x] Fix `{@link Collection}` Javadoc reference in `UnsynchronizedSymmetricMap`
+  (replaced with `{@code Collection<V>}`)
 
 ### SymmetricMap
 
