@@ -90,7 +90,60 @@ of copying the list. This cost is documented in the Javadoc.
 
 ---
 
-### Native `Spliterator` rather than delegation to `get(int)`
+### Native `ChunkIterator` rather than delegation to `get(int)`
+
+`UnsynchronizedChunkyList` provides a `ChunkIterator` that traverses the chunk
+chain natively, maintaining a pointer to the current chunk and an index within
+it. It overrides `iterator()` inherited from `AbstractList`.
+
+**Alternative considered:** inheriting the default iterator from `AbstractList`,
+which delegates to `get(int)`.
+
+**Reason for rejection:** `AbstractList`'s default iterator calls `get(i)` on
+each `next()` invocation, which traverses the chunk chain from the head each
+time — O(n) per element, giving O(n²) for a full iteration. The native
+`ChunkIterator` maintains a chunk pointer and advances in O(1) per element,
+giving O(n) for a full iteration. Benchmarks confirmed an 8x improvement on
+lists of 1000 elements with chunk size 100.
+
+---
+
+### Bidirectional traversal in `findChunk(int)`
+
+`findChunk(int index)` is a private utility method used by `get`, `set`,
+`add(int, E)`, and `remove(int)` to locate the chunk containing a given index.
+It traverses from `firstChunk` if `index < size / 2`, or from `lastChunk`
+backwards if `index >= size / 2`.
+
+**Alternative considered:** always traversing from `firstChunk`.
+
+**Reason for rejection:** always traversing from the front gives O(n/chunkSize)
+average traversal cost. Bidirectional traversal halves the average cost to
+O(n / (2 * chunkSize)) with no additional memory overhead.
+
+---
+
+### Optimized `addAll(Collection<? extends E> c)`
+
+`addAll` converts the source collection to an array via `toArray()`, validates
+all elements for `null`, then fills the last existing chunk and creates new
+full chunks using `System.arraycopy` — one copy per chunk rather than one
+`add` per element.
+
+**Alternative considered:** inheriting `AbstractList.addAll`, which calls
+`add(E)` for each element in a loop.
+
+**Reason for rejection:** the inherited implementation incurs per-element
+overhead: one `modCount++` increment, one null check, one potential
+`handleFullChunk` call per element. The optimized implementation performs a
+single null scan up front, a single `modCount++` at the end, and fills chunks
+in bulk with `System.arraycopy`. Benchmarks show `ChunkyList.addAll` at 0.87 µs
+vs `ArrayList.addAll` at 0.36 µs and `LinkedList.addAll` at 2.99 µs for 1000
+elements — a 3.4x improvement over `LinkedList`.
+
+---
+
+
 
 `UnsynchronizedChunkyList` provides a `ChunkSpliterator` that traverses the
 chunk chain natively, maintaining a pointer to the current chunk and an index

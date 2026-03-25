@@ -51,7 +51,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
     // ─── Instance fields ──────────────────────────────────────────────────────
 
     private int size;
-    private int chunkSize;
+    private final int chunkSize;
     private Chunk firstChunk;
     private Chunk lastChunk;
     private GrowingStrategy currentGrowingStrategy;
@@ -163,7 +163,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
      */
     public UnsynchronizedChunkyList(int chunkSize, Collection<? extends E> c) {
         this(chunkSize);
-        for (E e : c) add(e);
+        addAll(c);
     }
 
     // ─── Accessors ────────────────────────────────────────────────────────────
@@ -299,6 +299,58 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
         } else {
             handleFullChunk(lastChunk, e);
         }
+        return true;
+    }
+
+    /**
+     * Appends all elements of the given collection to the end of this list,
+     * in the order returned by the collection's iterator.
+     *
+     * <p>This implementation converts the collection to an array via
+     * {@link Collection#toArray()}, then fills the last existing chunk and
+     * creates new full chunks using {@link System#arraycopy}, avoiding the
+     * per-element overhead of repeated {@link #add(Object)} calls.
+     *
+     * @param c the collection whose elements are to be appended
+     * @return {@code true} if the list was modified
+     * @throws IllegalArgumentException if any element in {@code c} is {@code null}
+     */
+    @Override
+    public boolean addAll(Collection<? extends E> c) {
+        Object[] incoming = c.toArray();
+        int n = incoming.length;
+        if (n == 0) return false;
+
+        // Validate all elements before modifying the list
+        for (int i = 0; i < n; i++) {
+            if (incoming[i] == null) {
+                throw new IllegalArgumentException("null elements not allowed");
+            }
+        }
+
+        int srcPos = 0;
+
+        // Fill the last existing chunk if it has room
+        if (lastChunk != null && lastChunk.nbElements < chunkSize) {
+            int room = chunkSize - lastChunk.nbElements;
+            int toCopy = Math.min(room, n);
+            System.arraycopy(incoming, srcPos, lastChunk.elements, lastChunk.nbElements, toCopy);
+            lastChunk.nbElements += toCopy;
+            size += toCopy;
+            srcPos += toCopy;
+        }
+
+        // Create new chunks for the remaining elements
+        while (srcPos < n) {
+            int toCopy = Math.min(chunkSize, n - srcPos);
+            Chunk newChunk = addEmptyChunkAfter(lastChunk);
+            System.arraycopy(incoming, srcPos, newChunk.elements, 0, toCopy);
+            newChunk.nbElements = toCopy;
+            size += toCopy;
+            srcPos += toCopy;
+        }
+
+        modCount++;
         return true;
     }
 
@@ -443,6 +495,13 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
     }
 
     private void removeFromChunk(Chunk chunk, int i) {
+        if (chunk.nbElements == 1) {
+            // Skip arraycopy — remove the chunk directly
+            removeChunk(chunk);
+            size--;
+            modCount++;
+            return;
+        }
         System.arraycopy(chunk.elements, i + 1,
                 chunk.elements, i,
                 chunk.nbElements - i - 1);
@@ -540,6 +599,47 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
     @Override
     public Spliterator<E> spliterator() {
         return new ChunkSpliterator(firstChunk, null, size);
+    }
+
+    @Override
+    public Iterator<E> iterator() {
+        return new ChunkIterator();
+    }
+
+    private class ChunkIterator implements Iterator<E> {
+
+        private Chunk currentChunk;
+        private int currentIndex;
+        private int expectedModCount;
+
+        private ChunkIterator() {
+            this.currentChunk = firstChunk;
+            this.currentIndex = 0;
+            this.expectedModCount = modCount;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return currentChunk != null
+                    && (currentIndex < currentChunk.nbElements
+                    || currentChunk.nextChunk != null);
+        }
+
+        @Override
+        public E next() {
+            if (modCount != expectedModCount) {
+                throw new ConcurrentModificationException();
+            }
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            E element = currentChunk.elements[currentIndex++];
+            if (currentIndex >= currentChunk.nbElements) {
+                currentChunk = currentChunk.nextChunk;
+                currentIndex = 0;
+            }
+            return element;
+        }
     }
 
     // ─── Inner classes ────────────────────────────────────────────────────────

@@ -35,11 +35,13 @@ This structure offers a middle ground between `ArrayList` and `LinkedList`:
 
 #### Features
 
-- Full `java.util.List` implementation (`get`, `set`, `add`, `remove`, `indexOf`, `lastIndexOf`, `contains`, `clear`, ...)
+- Full `java.util.List` implementation (`get`, `set`, `add`, `remove`, `addAll`, `indexOf`, `lastIndexOf`, `contains`, `clear`, ...)
 - Configurable **chunk size** (default: 100)
 - Pluggable **growing and shrinking strategies**, swappable at runtime
 - Atomic **`setStrategies()`** to change both strategies simultaneously without risk of inconsistent intermediate state
+- Native **`Iterator`** for efficient sequential traversal — O(1) per element, avoiding the O(n²) cost of the default `AbstractList` iterator
 - Native **`Spliterator`** for efficient `stream()` and `parallelStream()` support
+- Optimized **`addAll`** using bulk `System.arraycopy` — fills and creates chunks directly without per-element overhead
 - Fail-fast iterators (`UnsynchronizedChunkyList`) and fail-safe snapshot iterators (`SynchronizedChunkyList`)
 - Copy constructors and collection constructors
 - `reorganize()` to compact sparsely filled chunks
@@ -277,10 +279,13 @@ relevant skill before starting the corresponding task.
 
 ### Starting a session
 
-At the beginning of each working session, ask Claude to read
-`.dev/CONTEXT.md`. This gives Claude the full picture: coding standards,
-pending tasks, and design decisions. The skills are then available for the
-rest of the session.
+This project is developed with **Claude Code** (JetBrains plugin) as the
+primary coding agent. Claude Code has direct access to the filesystem and
+reads the `.dev/` context files automatically at the start of each session.
+
+If working in a browser-based Claude session instead, ask Claude to read
+`.dev/CONTEXT.md` first. This gives Claude the full picture: coding standards,
+pending tasks, and design decisions.
 
 ### Triggering a skill explicitly
 

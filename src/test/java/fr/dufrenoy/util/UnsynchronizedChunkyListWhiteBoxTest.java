@@ -202,4 +202,68 @@ public class UnsynchronizedChunkyListWhiteBoxTest {
         assertEquals("D", copy.get(3));
         assertEquals(2, copy.countChunks());
     }
+
+    // ===== addAll white-box tests =====
+
+    @Test
+    public void testAddAll_OnEmptyList_CreatesCorrectNumberOfChunks() {
+        // chunkSize=3, adding 7 elements → ceil(7/3) = 3 chunks
+        UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
+        list.addAll(Arrays.asList("A", "B", "C", "D", "E", "F", "G"));
+
+        assertEquals(7, list.size());
+        assertEquals(3, list.countChunks());
+    }
+
+    @Test
+    public void testAddAll_FillsLastChunkBeforeCreatingNew() {
+        // chunkSize=3, list has 2 elements in last chunk (1 slot free)
+        // adding 4 elements → fills last chunk (1), then creates 1 full chunk + 1 partial
+        // total: 2 existing chunks → 1 filled + 2 new = 3 chunks
+        UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
+        list.add("A");
+        list.add("B");
+        list.add("C");
+        list.add("D");
+        list.add("E"); // 2 chunks: [A,B,C] [D,E]
+        list.addAll(Arrays.asList("F", "G", "H", "I"));
+        // [A,B,C] [D,E,F] [G,H,I] → 3 chunks
+        assertEquals(9, list.size());
+        assertEquals(3, list.countChunks());
+    }
+
+    @Test
+    public void testAddAll_ExactlyFillsWholeChunks() {
+        // chunkSize=3, adding 6 elements on empty list → exactly 2 full chunks
+        UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
+        list.addAll(Arrays.asList("A", "B", "C", "D", "E", "F"));
+
+        assertEquals(6, list.size());
+        assertEquals(2, list.countChunks());
+    }
+
+    @Test
+    public void testAddAll_LastChunkPartiallyFilled() {
+        // chunkSize=3, adding 5 elements → 2 chunks: 1 full + 1 with 2 elements
+        UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
+        list.addAll(Arrays.asList("A", "B", "C", "D", "E"));
+
+        assertEquals(5, list.size());
+        assertEquals(2, list.countChunks());
+    }
+
+    @Test
+    public void testAddAll_OnFullLastChunk_CreatesNewChunks() {
+        // chunkSize=3, list has exactly 1 full chunk [A,B,C]
+        // adding 3 elements → creates 1 new full chunk
+        // total: 2 chunks
+        UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
+        list.add("A");
+        list.add("B");
+        list.add("C");
+        list.addAll(Arrays.asList("D", "E", "F"));
+
+        assertEquals(6, list.size());
+        assertEquals(2, list.countChunks());
+    }
 }

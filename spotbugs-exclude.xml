@@ -19,4 +19,8 @@
         <Class name="fr.dufrenoy.util.UnsynchronizedSymmetricMap$EntrySetView$1$1"/>
     </Match>
 
+    <Match>
+        <Class name="~fr\.dufrenoy\.util\.jmh_generated\..*"/>
+    </Match>
+
 </FindBugsFilter>

@@ -52,6 +52,28 @@ of each session.
 - [ ] Fix remaining Checkstyle warnings in `UnsynchronizedChunkyList` and
   `SynchronizedChunkyList` (`NeedBraces`, `MissingSwitchDefault`, wildcard
   imports, `EmptyLineSeparator`, unused imports)
+- [ ] Implement `addAll(int index, Collection<? extends E> c)` — optimized
+  insertion at arbitrary index using `toArray` + `System.arraycopy` by chunks
+- [ ] Implement `removeAll(Collection<?> c)` — optimized single-pass with
+  compaction
+- [ ] Write tests and benchmarks for new `removeAll` method
+- [ ] Run full benchmark suite after remaining optimizations
+
+---
+
+## Optimization
+
+Potential performance improvements identified through benchmarking.
+Each item should be benchmarked before and after to confirm impact.
+
+- [ ] **Chunk index for `get(int)`** — maintain a cumulative offset array to
+  enable binary search instead of linear chain traversal. O(log(n/chunkSize))
+  instead of O(n/chunkSize). High complexity — requires maintaining the index
+  on every structural modification.
+- [ ] **`SPLIT_STRATEGY` / `MERGE_STRATEGY`** — new symmetric strategy pair
+  where insertion splits the target chunk in two instead of propagating
+  overflow. Would reduce `addAtMiddle` cost significantly at the expense of
+  increased chunk count.
 
 ---
 
@@ -113,3 +135,20 @@ of each session.
 - [x] Create SynchronizedChunkyListWhiteBoxTest
 - [x] Add final to countChunks() in UnsynchronizedChunkyList
 - [x] Add countChunks() to SynchronizedChunkyList
+- [x] Integrate JMH benchmarks — `ChunkyListBenchmark`, `ChunkyListRemoveBenchmark`,
+  `ChunkyListAddAllBenchmark` in `src/benchmark/java/` via Maven `benchmark` profile
+- [x] Fix O(n²) iteration bug — implement native `ChunkIterator` overriding
+  `AbstractList`'s default iterator (which delegated to `get(int)`)
+- [x] Implement bidirectional chunk traversal in `findChunk(int)` — traverse
+  from nearest end when `index >= size/2`, used by `get`, `set`, `add(int,E)`,
+  `remove(int)`
+- [x] Optimize `removeFromChunk` — skip `arraycopy` and remove chunk directly
+  when `nbElements == 1`
+- [x] Declare `chunkSize` as `final`
+- [x] Implement optimized `addAll(Collection<? extends E> c)` using `toArray`
+  + bulk `System.arraycopy` by chunks
+- [x] Optimize constructor `(int chunkSize, Collection<? extends E> c)` to
+  delegate to `addAll`
+- [x] Add `growingStrategy` and `shrinkingStrategy` `@Param` to all benchmark
+  classes
+- [x] Run full benchmark suite (OVERFLOW_STRATEGY only) — results recorded

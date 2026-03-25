@@ -49,14 +49,17 @@ licensed under the GNU Lesser General Public License v3.
 - `fr.dufrenoy.util.ChunkyList<E>` — a Java implementation of an unrolled linked
   list, with an unsynchronized and a thread-safe variant backed by a
   `ReentrantReadWriteLock`. Features configurable growing and shrinking
-  strategies, a native `Spliterator` for efficient parallel streams, and a
-  `reorganize()` operation to compact sparsely filled chunks.
+  strategies, a native `Iterator` and `Spliterator` for efficient sequential
+  and parallel traversal, an optimized `addAll` using `toArray` and bulk
+  `System.arraycopy`, and a `reorganize()` operation to compact sparsely
+  filled chunks.
 
 ### Repository structure
 ```
 src/
   main/java/fr/dufrenoy/util/
   test/java/fr/dufrenoy/util/
+  benchmark/java/fr/dufrenoy/util/
 .dev/
   CONTEXT.md
   WORKFLOW.md

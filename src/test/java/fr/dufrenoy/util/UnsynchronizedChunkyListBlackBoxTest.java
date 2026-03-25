@@ -159,4 +159,88 @@ public class UnsynchronizedChunkyListBlackBoxTest {
         list.add("A");
         assertThrows(IllegalArgumentException.class, () -> list.set(0, null));
     }
+
+    // ===== addAll tests =====
+
+    @Test
+    public void testAddAll_OnEmptyList_AddsAllElements() {
+        UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
+        List<String> toAdd = Arrays.asList("A", "B", "C", "D", "E");
+
+        boolean modified = list.addAll(toAdd);
+
+        assertTrue(modified);
+        assertEquals(5, list.size());
+        assertEquals(Arrays.asList("A", "B", "C", "D", "E"),
+                new ArrayList<>(list));
+    }
+
+    @Test
+    public void testAddAll_OnNonEmptyList_AppendsAllElements() {
+        UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
+        list.add("A");
+        list.add("B");
+        List<String> toAdd = Arrays.asList("C", "D", "E");
+
+        boolean modified = list.addAll(toAdd);
+
+        assertTrue(modified);
+        assertEquals(5, list.size());
+        assertEquals(Arrays.asList("A", "B", "C", "D", "E"),
+                new ArrayList<>(list));
+    }
+
+    @Test
+    public void testAddAll_WithEmptyCollection_ReturnsFalseAndDoesNotModify() {
+        UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
+        list.add("A");
+        list.add("B");
+
+        boolean modified = list.addAll(Collections.emptyList());
+
+        assertFalse(modified);
+        assertEquals(2, list.size());
+        assertEquals("A", list.get(0));
+        assertEquals("B", list.get(1));
+    }
+
+    @Test
+    public void testAddAll_WithNullElement_ThrowsAndDoesNotModifyList() {
+        UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
+        list.add("A");
+        list.add("B");
+        List<String> toAdd = Arrays.asList("C", null, "E");
+
+        assertThrows(IllegalArgumentException.class, () -> list.addAll(toAdd));
+
+        assertEquals(2, list.size());
+        assertEquals("A", list.get(0));
+        assertEquals("B", list.get(1));
+    }
+
+    @Test
+    public void testAddAll_PreservesOrder() {
+        UnsynchronizedChunkyList<Integer> list = new UnsynchronizedChunkyList<>(10);
+        for (int i = 0; i < 5; i++) list.add(i);
+        List<Integer> toAdd = new ArrayList<>();
+        for (int i = 5; i < 15; i++) toAdd.add(i);
+
+        list.addAll(toAdd);
+
+        for (int i = 0; i < 15; i++) {
+            assertEquals(i, list.get(i));
+        }
+    }
+
+    @Test
+    public void testAddAll_WithLinkedList_PreservesOrder() {
+        UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
+        list.add("A");
+        LinkedList<String> toAdd = new LinkedList<>(Arrays.asList("B", "C", "D"));
+
+        list.addAll(toAdd);
+
+        assertEquals(4, list.size());
+        assertEquals(Arrays.asList("A", "B", "C", "D"), new ArrayList<>(list));
+    }
 }
