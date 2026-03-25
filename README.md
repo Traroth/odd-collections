@@ -118,6 +118,37 @@ list.reorganize();
 list.reorganize(false);
 ```
 
+#### Performance
+
+JMH benchmarks comparing `UnsynchronizedChunkyList` against `ArrayList` and `LinkedList` at 100,000 elements, with the recommended configuration (`EXTEND_STRATEGY` / `DISAPPEAR_STRATEGY`, chunk size 500):
+
+| Operation | ArrayList | ChunkyList | LinkedList |
+|---|---|---|---|
+| `add(E)` at end | 0,030 µs | **0,013 µs** | 0,16 µs |
+| `add(int, E)` at middle | 8,8 µs | **1,4 µs** | 97 µs |
+| `get(int)` | **0,002 µs** | 0,35 µs | 103 µs |
+| `remove(int)` at middle | 3,6 µs | **0,42 µs** | 109 µs |
+| iterate | **121 µs** | 186 µs | 256 µs |
+| `addAll` (100k elements) | **43 µs** | 83 µs | 288 µs |
+| `parallelStream` | **30 µs** | 75 µs | 407 µs |
+
+Full benchmark results are available in `.dev/benchmarks/`.
+
+**When to use ChunkyList**
+
+- `add` at end, middle, or `remove` at middle are the dominant operations
+- The list is large (> 10,000 elements) and frequently modified
+- Parallel stream processing matters
+- Random access by index is infrequent
+
+**When to prefer ArrayList**
+
+- `get(int)` is the dominant operation
+- `addAll` is called frequently with large collections
+- The list is small (< 1,000 elements)
+
+> `ChunkyList` outperforms `LinkedList` on virtually every operation at every size — `LinkedList` is rarely the right choice.
+
 ---
 
 ### SymmetricMap

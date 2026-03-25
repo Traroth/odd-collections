@@ -137,13 +137,13 @@ full chunks using `System.arraycopy` — one copy per chunk rather than one
 overhead: one `modCount++` increment, one null check, one potential
 `handleFullChunk` call per element. The optimized implementation performs a
 single null scan up front, a single `modCount++` at the end, and fills chunks
-in bulk with `System.arraycopy`. Benchmarks show `ChunkyList.addAll` at 0.87 µs
-vs `ArrayList.addAll` at 0.36 µs and `LinkedList.addAll` at 2.99 µs for 1000
-elements — a 3.4x improvement over `LinkedList`.
+in bulk with `System.arraycopy`. Benchmarks show `ChunkyList.addAll` at
+~84 µs vs `ArrayList.addAll` at ~43 µs and `LinkedList.addAll` at ~295 µs
+for 100,000 elements with chunk size 500.
 
 ---
 
-
+### Native `Spliterator` rather than delegation to `get(int)`
 
 `UnsynchronizedChunkyList` provides a `ChunkSpliterator` that traverses the
 chunk chain natively, maintaining a pointer to the current chunk and an index
@@ -157,6 +157,56 @@ traversing the chunk chain from the head on each call, giving O(n) access for
 sequential iteration. The native `Spliterator` maintains a pointer to the
 current chunk and advances in O(1) per element. `trySplit()` splits the chunk
 range in half, enabling efficient parallel streams.
+
+---
+
+### Performance profile and recommended configuration
+
+JMH benchmarks comparing `UnsynchronizedChunkyList` against `ArrayList` and
+`LinkedList` across sizes from 100 to 100,000 elements and chunk sizes from
+10 to 500 reveal the following performance profile.
+
+**Strengths**
+
+- `addAtEnd` — consistently faster than `ArrayList` at all sizes and chunk
+  sizes. With chunk size 500: ~0.013 µs vs ~0.030 µs for `ArrayList`.
+- `addAtMiddle` with `EXTEND_STRATEGY` — dramatically faster than
+  `OVERFLOW_STRATEGY` (which cascades overflow across chunks). With chunk size
+  500 and 100,000 elements: 1.35 µs vs 8.8 µs for `ArrayList` and 100 µs for
+  `LinkedList`.
+- `removeAtMiddle` with `DISAPPEAR_STRATEGY` + large chunk size — with chunk
+  size 500 and 100,000 elements: 0.42 µs, beating `ArrayList` (3.6 µs) and
+  crushing `LinkedList` (109 µs).
+- `parallelStream` — significantly better than `LinkedList` due to natural
+  chunk-based splitting in `trySplit()`.
+
+**Weaknesses**
+
+- `getByIndex` — structurally O(n/chunkSize); `ArrayList` is always faster.
+  With chunk size 100 and 100,000 elements: 2.54 µs vs 0.002 µs for
+  `ArrayList`. Chunk size 500 reduces this to 0.35 µs but `ArrayList` remains
+  orders of magnitude faster.
+- `addAll` — approximately 2x slower than `ArrayList` due to chunk allocation
+  overhead, though 3.5x faster than `LinkedList`.
+- `iterate` and `stream` — between `ArrayList` and `LinkedList`.
+
+**Recommended configuration**
+
+For optimal performance on large lists with frequent insertions and removals:
+- Strategy: `EXTEND_STRATEGY` / `DISAPPEAR_STRATEGY`
+- Chunk size: ≥ 100 for lists > 10,000 elements; 500 for lists > 50,000 elements
+
+**Use ChunkyList when:**
+- The dominant operations are `addAtEnd`, `addAtMiddle`, or `removeAtMiddle`
+- Random access by index (`get`) is infrequent
+- Parallel stream processing is important
+
+**Prefer ArrayList when:**
+- Random access by index is the dominant operation
+- `addAll` is called frequently with large collections
+
+**Prefer LinkedList over neither** — `ChunkyList` outperforms `LinkedList` on
+virtually every operation at every size.
 
 ---
 
