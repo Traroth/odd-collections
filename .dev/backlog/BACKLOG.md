@@ -57,7 +57,6 @@ of each session.
 - [ ] Implement `removeAll(Collection<?> c)` — optimized single-pass with
   compaction
 - [ ] Write tests and benchmarks for new `removeAll` method
-- [ ] Run full benchmark suite after remaining optimizations
 
 ---
 
@@ -151,4 +150,10 @@ Each item should be benchmarked before and after to confirm impact.
   delegate to `addAll`
 - [x] Add `growingStrategy` and `shrinkingStrategy` `@Param` to all benchmark
   classes
-- [x] Run full benchmark suite (OVERFLOW_STRATEGY only) — results recorded
+- [x] Run full benchmark suite with all strategy combinations — results
+  recorded in `.dev/benchmarks/`
+- [x] `SynchronizedChunkyList.getChunkSize()` — remove unnecessary read lock
+  (`chunkSize` is `final`, visible without synchronisation)
+- [x] Update `CONTEXT.md`, `BACKLOG.md`, `ARCHITECTURE.md`, `README.md` with
+  benchmark conclusions and performance profile
+- [x] Transition to Claude Code (JetBrains plugin) as primary coding agent

@@ -138,14 +138,13 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
 
     // ─── Accessors ────────────────────────────────────────────────────────────
 
+    /**
+     * Returns the Chunksize, which is final, so no need for locking.
+     * @return
+     */
     @Override
     public int getChunkSize() {
-        readLock.lock();
-        try {
-            return inner.getChunkSize();
-        } finally {
-            readLock.unlock();
-        }
+        return inner.getChunkSize();
     }
 
     @Override
