@@ -49,11 +49,11 @@ example a node graph + an index):
 
 Unless explicitly documented otherwise:
 
-    null elements are allowed
+    null elements are forbidden
 
-If a structure forbids null values, the invariant must state:
+If a structure explicitly allows null values, the invariant must state:
 
-    no stored element is null
+    null elements are permitted
 
 ------------------------------------------------------------------------
 
@@ -105,8 +105,8 @@ If duplicates are forbidden:
 For structures with bidirectional relationships
 (e.g. `SymmetricMap<K,V>`):
 
-    getKey(getValue(k)) == k
-    getValue(getKey(v)) == v
+    getKey(get(k)).get() == k    (for all k where containsKey(k))
+    get(getKey(v).get())  == v   (for all v where containsValue(v))
 
 Mappings must remain perfectly mirrored.
 
@@ -151,6 +151,125 @@ For symmetric maps:
     //@ invariant (\forall K k; map.containsKey(k); reverse.get(map.get(k)) == k);
 
 This allows automated verification using JML tools.
+
+------------------------------------------------------------------------
+
+# Concrete invariants per class
+
+------------------------------------------------------------------------
+
+## SymmetricMap
+
+### Null keys and values
+
+`SymmetricMap` explicitly allows `null` as both a key and a value.
+`null` behaves as a regular entry: `put(null, 1)` is valid, and
+`getKey(null)` performs a lookup by null value.
+
+    null elements are permitted
+
+### Bijectivity
+
+The core invariant: no two entries share the same key, and no two
+entries share the same value.
+
+    //@ invariant (\forall K k; containsKey(k); getKey(get(k)).isPresent());
+    //@ invariant (\forall K k; containsKey(k); Objects.equals(getKey(get(k)).get(), k));
+    //@ invariant (\forall V v; containsValue(v); Objects.equals(get(getKey(v).get()), v));
+
+### Table structure (`UnsynchronizedSymmetricMap`)
+
+    table != null
+    table.length >= 1
+    (\forall int i; 0 <= i < table.length; table[i] != null)
+    threshold == (int)(table.length * loadFactor)
+    size >= 0
+
+### Load factor constraint
+
+Maintained by `resize()` before every `insertEntry()`:
+
+    size <= threshold
+
+### Hash chain placement
+
+Each entry resides in the key bucket corresponding to its key hash,
+and in the value bucket corresponding to its value hash:
+
+    //@ invariant (\forall Entry e; reachable(e);
+    //@     e is in table[Math.abs(e.keyHash) % table.length].firstByKey chain);
+    //@ invariant (\forall Entry e; reachable(e);
+    //@     e is in table[Math.abs(e.valueHash) % table.length].firstByValue chain);
+
+Stored hashes match the actual hash of the key and value at insertion
+time. This invariant relies on `hashCode()` being stable for the
+lifetime of the entry in the map (i.e. mutable keys or values whose
+hash changes after insertion will silently break lookup):
+
+    e.keyHash   == Objects.hashCode(e.key)
+    e.valueHash == Objects.hashCode(e.value)
+
+### Entry chain membership
+
+Each entry appears exactly once in one key chain and exactly once in
+one value chain. `size` equals the total number of entries across all
+key chains:
+
+    //@ invariant size == (\sum int i; 0 <= i < table.length; chain_length(table[i].firstByKey));
+
+------------------------------------------------------------------------
+
+## ChunkyList
+
+### Null elements
+
+`ChunkyList` does **not** allow null elements (contrary to the general
+library default). `add()`, `set()`, and `addAll()` reject `null` with
+`IllegalArgumentException`.
+
+    //@ invariant (\forall Chunk c; reachable(c);
+    //@     (\forall int i; 0 <= i < c.nbElements; c.elements[i] != null));
+
+### Size consistency
+
+`size` equals the sum of `nbElements` across all chunks in the chain:
+
+    //@ invariant size >= 0;
+    //@ invariant size == (\sum Chunk c; reachable(c); c.nbElements);
+
+### Empty list
+
+    //@ invariant size == 0 <==> (firstChunk == null && lastChunk == null);
+
+### Chunk chain structure
+
+When non-empty, the chain is a doubly-linked list with no dangling
+terminal references:
+
+    firstChunk.previousChunk == null
+    lastChunk.nextChunk      == null
+
+Bidirectional links are consistent:
+
+    //@ invariant (\forall Chunk c; reachable(c) && c.nextChunk != null;
+    //@     c.nextChunk.previousChunk == c);
+    //@ invariant (\forall Chunk c; reachable(c) && c.previousChunk != null;
+    //@     c.previousChunk.nextChunk == c);
+
+### Chunk content bounds
+
+    //@ invariant (\forall Chunk c; reachable(c); 0 <= c.nbElements && c.nbElements <= chunkSize);
+
+Unused array slots are null (cleared on removal):
+
+    //@ invariant (\forall Chunk c; reachable(c);
+    //@     (\forall int i; c.nbElements <= i < chunkSize; c.elements[i] == null));
+
+### Configuration
+
+    chunkSize >= 1                      // enforced in constructor, final field
+    currentGrowingStrategy  != null
+    currentShrinkingStrategy != null
 
 ------------------------------------------------------------------------
 

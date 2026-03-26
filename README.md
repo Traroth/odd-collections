@@ -236,9 +236,9 @@ Iterators on `keySet()`, `values()`, and `entrySet()` in `SynchronizedSymmetricM
 
 ## Requirements
 
-- **Java 11 or later** to use this library
-- **Java 11 or later** to build this project (required by SpotBugs 4.9.x and
-  Checkstyle 10.x)
+- **Java 11 or later** to use this library — Java 11 is the compilation target
+- **Java 11 or later** to build this project (also required by SpotBugs 4.9.x
+  and Checkstyle 10.x)
 - A **Java 21 runtime** is recommended to take advantage of the optimized
   implementations provided via the multi-release JAR (planned)
 - **OpenJML 21.0.23 or later** in WSL (Ubuntu) — optional, required only for

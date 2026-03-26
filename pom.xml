@@ -14,7 +14,7 @@
   <url>https://github.com/Traroth/odd-collections</url>
 
   <properties>
-    <maven.compiler.release>9</maven.compiler.release>
+    <maven.compiler.release>11</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -44,7 +44,7 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.11.0</version>
         <configuration>
-          <release>9</release>
+          <release>11</release>
         </configuration>
       </plugin>
 

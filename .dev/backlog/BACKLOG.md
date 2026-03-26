@@ -14,9 +14,7 @@ of each session.
 - [ ] `MultiMap`
 - [ ] `Tuple` — a type-safe immutable tuple system without one class per arity
 - [ ] `CircularBuffer` — a circular doubly-linked list backed by a ring of nodes
-- [ ] Migrate baseline from Java 9 to Java 11
 - [ ] Set up multi-release JAR with Java 21 variant
-- [ ] Update README requirements section (Java 11 baseline, Java 21 variant)
 - [ ] Update project description for GitHub (`pom.xml` and repository)
 - [ ] Port odd-collections to TypeScript
 - [ ] Port odd-collections to Python
@@ -80,6 +78,8 @@ Each item should be benchmarked before and after to confirm impact.
 
 ### Project-wide
 
+- [x] Migrate baseline from Java 9 to Java 11
+- [x] Update README requirements section (Java 11 baseline, Java 21 variant)
 - [x] Formalize AI workflow: `CONTEXT.md`, `WORKFLOW.md`, `JAVA_STANDARDS.md`,
   `ARCHITECTURE.md`, skills (`static-analysis`, `new-class`, `update-backlog`,
   `update-readme`)
