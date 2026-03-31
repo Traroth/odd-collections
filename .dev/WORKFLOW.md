@@ -3,33 +3,35 @@
 This document defines the standard workflow for implementing or modifying
 a class in the library. The goal is to maintain architectural consistency,
 code quality, and reliable behaviour when using AI-assisted development.
-
+1
 All steps should be followed in order unless explicitly instructed otherwise.
 
 ---
 
 ## Overview
 
-The development workflow follows a **design‑first and validation‑driven approach**:
+The development workflow follows a **design‑first, TDD‑driven approach**:
 
-1. Design
-2. Design review
-3. Update `ARCHITECTURE.md`
-4. Update `BACKLOG.md`
-5. Implementation
-6. Static analysis
-7. Tests
-8. Test coverage review
-9. Documentation
-10. Session wrap‑up
+1. Discussion
+2. Stub class + JML specifications
+3. Design review
+4. Update `ARCHITECTURE.md`
+5. Update `BACKLOG.md`
+6. Tests (interface contract + black‑box, TDD)
+7. Implementation
+8. White‑box tests
+9. Static analysis
+10. Test coverage review
+11. Documentation
+12. Session wrap‑up
 
 Each step has a specific purpose and should not be skipped.
 
 ---
 
-## 1. Design
+## 1. Discussion
 
-Before writing any code, clarify the design of the class or structure.
+Before writing any code, discuss the design of the class or structure.
 
 Define:
 
@@ -41,14 +43,27 @@ Define:
 - Whether a **thread‑safe variant** is required
 - Any **configurable strategies**
 
-If structural constraints exist, document them clearly.
-Prefer documenting invariants using **JML `@invariant` annotations**.
-
-Do not start coding until the design is clearly understood.
+Do not move to the next step until the design is clearly understood and agreed upon.
 
 ---
 
-## 2. Design review
+## 2. Stub class + JML specifications
+
+Create a skeleton of the class where:
+
+- All public methods are declared with their full signature and Javadoc
+- Method bodies contain only `throw new UnsupportedOperationException()`
+- Class invariants are expressed as JML `@invariant` annotations
+- Pre‑ and post‑conditions of key mutation methods are expressed as JML
+  `@requires` / `@ensures` contracts
+
+The goal of this step is to make the **contract explicit and reviewable**
+before any logic is written. The stub is the artefact that the design review
+and the black‑box tests will be written against.
+
+---
+
+## 3. Design review
 
 Run the `design-review` skill.
 
@@ -64,7 +79,9 @@ If significant risks are identified, resolve them before proceeding.
 
 ---
 
-## 3. Update ARCHITECTURE.md
+## 4. Update ARCHITECTURE.md and INVARIANTS.md
+
+### ARCHITECTURE.md
 
 Document the design decisions.
 
@@ -77,9 +94,21 @@ Add a section describing:
 
 This document acts as the **long‑term architectural memory** of the project.
 
+### INVARIANTS.md
+
+Add a section for the new class documenting:
+
+- null handling policy
+- ordering and uniqueness invariants (if applicable)
+- size consistency invariants
+- internal structural invariants (node links, augmentation, etc.)
+
+Express invariants using JML `@invariant` notation where possible, so
+they can serve as a reference for both implementation and formal verification.
+
 ---
 
-## 4. Update BACKLOG.md
+## 5. Update BACKLOG.md
 
 Add the class and its tasks to the backlog.
 
@@ -97,54 +126,11 @@ completed items checked in the active sections.
 
 ---
 
-## 5. Implementation
+## 6. Tests — interface contract + black‑box (TDD)
 
-Implement the class following the coding standards defined in:
-
-`.dev/standards/JAVA_STANDARDS.md`
-
-Key principles:
-
-- Preserve class invariants
-- Prefer clarity over cleverness
-- Keep methods reasonably small
-- Avoid unnecessary abstraction
-
-Pay special attention to **mutation methods**, which are the most common
-source of structural bugs:
-
-- `put`
-- `remove`
-- `add`
-- `set`
-- `clear`
-- `rehash`
-- `resize`
-
----
-
-## 6. Static analysis
-
-Run the `static-analysis` skill.
-
-The analysis verifies:
-
-- logic correctness
-- contract compliance
-- invariant preservation
-- complexity guarantees
-- mutation safety
-- iterator correctness
-- null handling
-- coding standards
-
-Resolve all **Critical issues** before continuing.
-
----
-
-## 7. Tests
-
-Write the three test classes.
+Write the interface contract tests and the black‑box tests **before**
+implementing the class. Both can be written against the stub produced in
+step 2, without reading any implementation.
 
 ### Interface contract tests
 
@@ -175,7 +161,44 @@ They must cover:
 
 They should be writable **without reading the implementation**.
 
-### White‑box tests
+At this point, all tests are expected to fail — the stub methods all throw
+`UnsupportedOperationException`. This is intentional: the tests define the
+target behaviour that the implementation must satisfy.
+
+---
+
+## 7. Implementation
+
+Replace each `UnsupportedOperationException` stub with a real implementation,
+following the coding standards defined in `.dev/standards/JAVA_STANDARDS.md`.
+
+The goal is to make all black‑box tests pass.
+
+Key principles:
+
+- Preserve class invariants
+- Prefer clarity over cleverness
+- Keep methods reasonably small
+- Avoid unnecessary abstraction
+
+Pay special attention to **mutation methods**, which are the most common
+source of structural bugs:
+
+- `put`
+- `remove`
+- `add`
+- `set`
+- `clear`
+- `rehash`
+- `resize`
+
+---
+
+## 8. White‑box tests
+
+Write the white‑box tests **after** the implementation is complete.
+These tests require knowledge of the internal structure and cannot be written
+before the implementation exists.
 
 `ClassNameWhiteBoxTest`
 
@@ -187,11 +210,33 @@ These tests target **implementation risks**, such as:
 - concurrent modification cases
 - lock ordering
 
-Each test must explain **why the scenario is risky**.
+Each test must have a comment explaining **why the scenario is risky**.
+
+White‑box tests must not duplicate black‑box tests — they target only what
+cannot be observed through the public API.
 
 ---
 
-## 8. Test coverage review
+## 9. Static analysis
+
+Run the `static-analysis` skill.
+
+The analysis verifies:
+
+- logic correctness
+- contract compliance
+- invariant preservation
+- complexity guarantees
+- mutation safety
+- iterator correctness
+- null handling
+- coding standards
+
+Resolve all **Critical issues** before continuing.
+
+---
+
+## 10. Test coverage review
 
 Run the `test-coverage-review` skill.
 
@@ -206,7 +251,7 @@ Add missing tests if necessary.
 
 ---
 
-## 9. Documentation
+## 11. Documentation
 
 Update project documentation when public behaviour changes.
 
@@ -228,7 +273,7 @@ Ensure examples compile against the real API.
 
 ---
 
-## 10. Session wrap‑up
+## 12. Session wrap‑up
 
 At the end of a session, run:
 

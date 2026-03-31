@@ -273,6 +273,66 @@ Unused array slots are null (cleared on removal):
 
 ------------------------------------------------------------------------
 
+## TreeList
+
+### Null elements
+
+`TreeList` does not allow null elements. `add()` and constructors reject
+`null` with `NullPointerException`.
+
+    //@ invariant (\forall int i; 0 <= i < size(); get(i) != null);
+
+### Strict sort order and no duplicates
+
+Elements are in strictly ascending order according to the comparator (or
+natural ordering). Strict inequality implies no duplicates.
+
+    //@ invariant (\forall int i; 0 <= i < size() - 1;
+    //@     compare(get(i), get(i + 1)) < 0);
+
+### Size consistency
+
+`size` equals `root.subtreeSize` when the tree is non-empty, and 0 when
+the root is null:
+
+    //@ invariant size >= 0;
+    //@ invariant root == null ==> size == 0;
+    //@ invariant root != null ==> size == root.subtreeSize;
+
+### BST property (`UnsynchronizedTreeList`)
+
+For every node `n`, all elements in its left subtree compare strictly less
+than `n.element`, and all elements in its right subtree compare strictly
+greater:
+
+    //@ invariant (\forall Node n; reachable(n);
+    //@     (\forall Node l; inLeftSubtree(l, n);  compare(l.element, n.element) < 0));
+    //@ invariant (\forall Node n; reachable(n);
+    //@     (\forall Node r; inRightSubtree(r, n); compare(r.element, n.element) > 0));
+
+### Red-black properties (`UnsynchronizedTreeList`)
+
+Standard red-black tree invariants, maintained after every rotation and
+colour flip:
+
+    root.color == BLACK                              // root is always black
+    (\forall Node n; reachable(n) && n.color == RED; // no two consecutive red nodes
+        n.parent.color == BLACK)
+    (\forall Node n; reachable(n);                   // equal black-height on all paths
+        blackHeight(n.left) == blackHeight(n.right))
+
+### Subtree size augmentation (`UnsynchronizedTreeList`)
+
+Every node stores the number of nodes in its subtree (including itself).
+This invariant must be restored after every rotation and structural change:
+
+    //@ invariant (\forall Node n; reachable(n);
+    //@     n.subtreeSize == 1
+    //@         + (n.left  != null ? n.left.subtreeSize  : 0)
+    //@         + (n.right != null ? n.right.subtreeSize : 0));
+
+------------------------------------------------------------------------
+
 # When adding a new structure
 
 Whenever a new class is introduced:

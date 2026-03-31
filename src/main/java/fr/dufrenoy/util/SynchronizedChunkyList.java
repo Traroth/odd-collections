@@ -140,7 +140,7 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
 
     /**
      * Returns the Chunksize, which is final, so no need for locking.
-     * @return
+     * @return the chunk size of this list
      */
     @Override
     public int getChunkSize() {

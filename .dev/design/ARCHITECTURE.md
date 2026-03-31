@@ -210,6 +210,138 @@ virtually every operation at every size.
 
 ---
 
+## TreeList
+
+### Interface + two implementations rather than a single class
+
+`TreeList<E>` is defined as an interface extending `List<E>`, with two concrete
+implementations: `UnsynchronizedTreeList` and `SynchronizedTreeList`.
+
+**Alternative considered:** a single class with an optional locking flag.
+
+**Reason for rejection:** same rationale as `ChunkyList` and `SymmetricMap` —
+the thread-safety contract should be explicit in the type system, not hidden
+behind a runtime flag.
+
+---
+
+### Red-black tree augmented with subtree sizes (order-statistic tree)
+
+`UnsynchronizedTreeList` is backed by a red-black tree where each node stores
+the size of its subtree (`subtreeSize`). This augmentation allows index-based
+operations (`get(int)`, `remove(int)`) to run in O(log n) by computing the
+rank of a node from the subtree sizes of its children.
+
+**Alternative considered:** a plain red-black tree without augmentation.
+
+**Reason for rejection:** without subtree sizes, `get(int)` requires a full
+in-order traversal — O(n). The augmentation adds one integer per node and
+requires updating `subtreeSize` on every rotation and structural change, but
+keeps all operations at O(log n).
+
+**Alternative considered:** an `ArrayList` kept sorted via `Collections.sort()`
+or binary search insertion.
+
+**Reason for rejection:** insertion and removal in an `ArrayList` are O(n) due
+to element shifting. The red-black tree gives O(log n) for all structural
+operations.
+
+**Alternative considered:** a `TreeMap<E, Void>` wrapper.
+
+**Reason for rejection:** `TreeMap` provides no index-based access. `get(int)`
+would require a full traversal — O(n). The augmented tree is the only approach
+that achieves O(log n) for both sorted lookup and indexed access.
+
+---
+
+### `add(int, E)`, `set(int, E)`, and `subList(int, int)` throw `UnsupportedOperationException`
+
+The position of each element is determined by its sort order, not by the
+caller. Allowing positional insertion or replacement would silently break the
+sorted invariant.
+
+**Alternative considered:** ignoring the index and inserting in sorted position.
+
+**Reason for rejection:** silently ignoring a parameter violates the principle
+of least surprise and the `List` contract, which states that `add(int, E)`
+inserts at the specified position.
+
+`subList(int, int)` is not supported in the current version. A live view over
+a tree-backed structure requires careful bookkeeping of structural modifications
+and is deferred to a future implementation (see `BACKLOG.md`).
+
+---
+
+### No duplicates — `add(E)` returns `false` for existing elements
+
+Two elements are considered duplicates if `compare(a, b) == 0`. Duplicate
+insertions are silently rejected: `add(E)` returns `false` without modifying
+the list.
+
+This deviates from the `List.add(E)` contract, which always returns `true`,
+but is consistent with the `Collection.add(E)` specification: "returns `true`
+if this collection changed as a result of the call."
+
+---
+
+### `removeAll()` and `retainAll()` explicitly overridden in `UnsynchronizedTreeList`
+
+`AbstractCollection.removeAll()` and `retainAll()` iterate via
+`iterator().remove()`. Since the `TreeList` iterator does not support `remove()`
+(modifications must go through the tree to preserve the red-black invariants),
+both methods are overridden to call `remove(Object)` directly.
+
+---
+
+### `equals()` and `hashCode()` explicitly overridden in `SynchronizedTreeList`
+
+`SynchronizedTreeList` does not extend `AbstractList`, so `Object.equals()`
+(reference equality) would apply by default, violating the `List` contract.
+Both methods are explicitly overridden to delegate to the inner
+`UnsynchronizedTreeList` under a read lock.
+
+---
+
+### `iterator()` performs an in-order traversal of the red-black tree
+
+The iterator maintains a pointer to the current node and advances to the
+in-order successor on each `next()` call — O(1) per step, O(n) for a full
+iteration. It does not support `remove()`.
+
+**Alternative considered:** inheriting the default iterator from `AbstractList`,
+which delegates to `get(int)`.
+
+**Reason for rejection:** `get(int)` on an augmented tree is O(log n), giving
+O(n log n) for a full iteration. The native in-order traversal is O(n).
+
+---
+
+### Snapshot-based iterators in `SynchronizedTreeList`
+
+`iterator()`, `listIterator()`, and `listIterator(int)` in `SynchronizedTreeList`
+operate on a snapshot of the list taken under a read lock.
+
+**Alternative considered:** fail-fast iterators protected by the read lock for
+their entire duration.
+
+**Reason for rejection:** same rationale as `SynchronizedChunkyList` and
+`SynchronizedSymmetricMap` — holding a read lock for the full duration of an
+iteration blocks all writes for an unbounded time.
+
+---
+
+### `ReentrantReadWriteLock` in `SynchronizedTreeList`
+
+`SynchronizedTreeList` uses a `ReentrantReadWriteLock` to protect all
+operations, following the same pattern as `SynchronizedChunkyList` and
+`SynchronizedSymmetricMap`.
+
+**Design rationale:** multiple concurrent readers are allowed; writes are
+exclusive. This is a significant performance advantage for read-heavy workloads
+over a single `synchronized` monitor.
+
+---
+
 ## SymmetricMap
 
 ### Interface + two implementations rather than a single class

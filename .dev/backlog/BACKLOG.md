@@ -10,14 +10,20 @@ of each session.
 - [ ] Copy constructors between `UnsynchronizedChunkyList` and
   `SynchronizedChunkyList` — on hold
 - [ ] `SortedChunkyList`
-- [ ] `TreeList`
 - [ ] `MultiMap`
 - [ ] `Tuple` — a type-safe immutable tuple system without one class per arity
 - [ ] `CircularBuffer` — a circular doubly-linked list backed by a ring of nodes
+- [ ] Implement `Serializable` on all data structures
 - [ ] Set up multi-release JAR with Java 21 variant
 - [ ] Update project description for GitHub (`pom.xml` and repository)
 - [ ] Port odd-collections to TypeScript
 - [ ] Port odd-collections to Python
+
+## TreeList
+
+- [ ] Implement `subList(int, int)` — live view over a tree-backed structure
+
+---
 
 ## JML / Formal verification
 
@@ -119,6 +125,17 @@ Each item should be benchmarked before and after to confirm impact.
 - [x] Create `SynchronizedSymmetricMapBlackBoxTest`
 - [x] Create `SynchronizedSymmetricMapWhiteBoxTest`
 
+### TreeList
+
+- [x] Implement `UnsynchronizedTreeList` — red-black tree augmented with subtree sizes
+- [x] Implement `SynchronizedTreeList` — delegates to `UnsynchronizedTreeList` with `ReentrantReadWriteLock`
+- [x] Create `MockTreeList`
+- [x] Create `TreeListTest` (interface contract)
+- [x] Create `UnsynchronizedTreeListBlackBoxTest`
+- [x] Create `UnsynchronizedTreeListWhiteBoxTest`
+- [x] Create `SynchronizedTreeListBlackBoxTest`
+- [x] Create `SynchronizedTreeListWhiteBoxTest`
+
 ### ChunkyList
 
 - [x] Initial implementation of `UnsynchronizedChunkyList` and
@@ -157,3 +174,4 @@ Each item should be benchmarked before and after to confirm impact.
 - [x] Update `CONTEXT.md`, `BACKLOG.md`, `ARCHITECTURE.md`, `README.md` with
   benchmark conclusions and performance profile
 - [x] Transition to Claude Code (JetBrains plugin) as primary coding agent
+- [x] `TreeList`

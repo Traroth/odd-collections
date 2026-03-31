@@ -224,12 +224,94 @@ Iterators on `keySet()`, `values()`, and `entrySet()` in `SynchronizedSymmetricM
 
 ---
 
+### TreeList
+
+A **sorted list with no duplicates** backed by a **red-black tree augmented with subtree sizes** (order-statistic tree). Each node stores the size of its subtree, enabling O(log n) index-based access — something a plain `TreeMap` cannot provide.
+
+#### How it works
+
+Elements are ordered by their natural ordering or by a `Comparator` supplied at construction time. Two elements are considered duplicates if `compare(a, b) == 0`; duplicate insertions are silently rejected.
+
+```
+           5 (BLACK, size=7)
+          / \
+      3 (RED)   8 (RED)
+     / \        / \
+    1   4      7   9
+```
+
+Unlike `ArrayList`, insertion and removal are O(log n) with no element shifting. Unlike a `TreeMap` wrapper, the augmented subtree sizes keep `get(int)` at O(log n) rather than O(n).
+
+#### Architecture
+
+| Type | Role |
+|---|---|
+| `TreeList<E>` | Interface extending `java.util.List`, declaring the `comparator()` method |
+| `UnsynchronizedTreeList<E>` | Standard implementation backed by an order-statistic red-black tree — not thread-safe |
+| `SynchronizedTreeList<E>` | Thread-safe implementation backed by a `ReentrantReadWriteLock` |
+
+#### Features
+
+- Full `java.util.List` implementation (`get`, `add`, `remove`, `contains`, `indexOf`, `removeAll`, `retainAll`, `addAll`, `clear`, ...)
+- **Sorted order** always maintained — elements are kept in ascending order by natural ordering or by a provided `Comparator`
+- **No duplicates** — `add(E)` returns `false` if the element is already present, leaving the list unchanged
+- **O(log n)** for `add`, `remove(int)`, `remove(Object)`, `contains`, `indexOf`, and `get` — all operations exploit the tree structure
+- **O(n)** full iteration via a native in-order traversal — avoids the O(n log n) cost of iterating via repeated `get(int)`
+- `comparator()` returns the comparator in use, or an empty `Optional` for natural ordering
+- Collection constructors (with or without a `Comparator`), with duplicate elements silently discarded
+- Snapshot-based iterators in `SynchronizedTreeList`
+- Positional insertion (`add(int, E)`), replacement (`set`), and `subList` are not supported and throw `UnsupportedOperationException`
+
+#### Usage
+
+```java
+// Natural ordering
+TreeList<Integer> list = new UnsynchronizedTreeList<>();
+list.add(5);
+list.add(2);
+list.add(8);
+System.out.println(list.get(0)); // 2 — always sorted
+System.out.println(list.add(5)); // false — duplicate rejected
+System.out.println(list.size()); // 3
+
+// Index-based access in O(log n)
+int third = list.get(2); // 8
+
+// Custom comparator (reverse order)
+TreeList<String> desc = new UnsynchronizedTreeList<>(Comparator.reverseOrder());
+desc.add("banana");
+desc.add("apple");
+desc.add("cherry");
+System.out.println(desc.get(0)); // cherry
+
+// From an existing collection — duplicates discarded
+List<Integer> source = List.of(3, 1, 4, 1, 5, 9);
+TreeList<Integer> list = new UnsynchronizedTreeList<>(source);
+System.out.println(list.size()); // 5 (duplicate 1 discarded)
+
+// Thread-safe
+TreeList<Integer> list = new SynchronizedTreeList<>();
+```
+
+#### Thread safety
+
+`UnsynchronizedTreeList` is **not thread-safe**. For concurrent access, use `SynchronizedTreeList`, which is backed by a `ReentrantReadWriteLock`: multiple threads may read concurrently, while writes are exclusive.
+
+`iterator()`, `listIterator()`, and `listIterator(int)` on a `SynchronizedTreeList` return **snapshot-based iterators**: a copy of the list is taken under a read lock at the time the iterator is created. Subsequent modifications to the list are not reflected in the iterator, and the iterator never throws `ConcurrentModificationException`.
+
+> **Memory note:** snapshot-based operations copy the entire list. Avoid calling them on very large lists in memory-constrained environments.
+
+#### Development note
+
+`TreeList` is the first structure in this project developed **JML-first**: class invariants and method pre/post-conditions were expressed as JML `@invariant`, `@requires`, and `@ensures` annotations before any implementation was written. This made the contract explicit and unambiguous at design time, reduced back-and-forth during implementation, and produced a more structurally reliable result than the earlier classes — which received JML annotations retroactively.
+
+---
+
 ## Roadmap
 
 - **`Tuple`** — a type-safe immutable tuple system without one class per arity, with Java 21 record-based implementation via multi-release JAR
 - **`CircularBuffer`** — a circular doubly-linked list backed by a ring of nodes
 - **`SortedChunkyList`** — a `ChunkyList` that maintains elements in sorted order using a `Comparator`, with O(log n) insertion via binary search across chunks
-- **`TreeList`** — a `List` backed by a red-black order-statistic tree, providing O(log n) access by index
 - **`MultiMap`** — a multidimensional map with a configurable number of dimensions, supporting partial key lookups that return sub-maps
 
 ---
@@ -260,6 +342,38 @@ This project is developed with Claude as a coding assistant. The `.dev/`
 directory contains everything Claude needs to work consistently on the
 codebase — and everything a human contributor needs to understand the
 project's conventions and history.
+
+Beyond being a collection of data structures, this project is intended as a
+**practical example of reliable AI-assisted development**. The workflow,
+tooling, and conventions documented here address a recurring challenge: LLMs
+generate code quickly, but without discipline, they also introduce subtle bugs,
+drift from the original design, and produce tests that are superficially broad
+but structurally shallow.
+
+The approach used here rests on four layers of rigour:
+
+1. **Design before code** — invariants, complexity guarantees, and interface
+   contracts are agreed upon before any implementation is written. This gives
+   the model a precise target rather than an open-ended task.
+
+2. **JML contracts as a specification layer** — class invariants and
+   method pre/post-conditions are expressed in JML (`@invariant`, `@requires`,
+   `@ensures`) directly in the source. Starting from `TreeList`, these are
+   written *before* the implementation, making the contract machine-verifiable
+   and leaving no room for implicit assumptions to slip through.
+
+3. **Three-level testing** — interface contract tests (`FooTest`), black-box
+   tests (`FooBlackBoxTest`), and white-box tests (`FooWhiteBoxTest`) are kept
+   strictly separate. The first two are written before the implementation (TDD),
+   the third after — targeting internal risks that the public API cannot expose.
+
+4. **Systematic static analysis** — after every significant generation, Claude
+   reviews the code for logic bugs, contract violations, invariant preservation,
+   null safety, and complexity guarantees, before automated tools (Checkstyle,
+   SpotBugs, JaCoCo) run.
+
+Each layer catches a different class of defect. Together they make AI-generated
+code auditable, reproducible, and maintainable — not just initially correct.
 
 ### Project-specific choices
 
