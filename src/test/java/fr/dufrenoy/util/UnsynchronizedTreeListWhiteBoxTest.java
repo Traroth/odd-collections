@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.List;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.ListIterator;
@@ -262,7 +263,7 @@ public class UnsynchronizedTreeListWhiteBoxTest {
         for (int i = 1; i <= 7; i++) {
             list.add(i);
         }
-        list.removeAll(Arrays.asList(2, 4, 6));
+        list.removeAll(List.of(2, 4, 6));
         assertEquals(4, list.size());
         assertTrue(list.contains(1));
         assertTrue(list.contains(3));
@@ -277,7 +278,7 @@ public class UnsynchronizedTreeListWhiteBoxTest {
         for (int i = 1; i <= 10; i++) {
             list.add(i);
         }
-        list.retainAll(Arrays.asList(1, 3, 5, 7, 9));
+        list.retainAll(List.of(1, 3, 5, 7, 9));
         assertEquals(5, list.size());
         for (int i = 0; i < list.size() - 1; i++) {
             assertTrue(list.get(i) < list.get(i + 1), "Sorted order violated after retainAll");

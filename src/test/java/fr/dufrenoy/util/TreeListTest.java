@@ -47,7 +47,7 @@ public class TreeListTest {
     @Test
     public void testComparator_NaturalOrdering_IsEmpty() {
         TreeList<Integer> list = new MockTreeList<>();
-        assertFalse(list.comparator().isPresent());
+        assertTrue(list.comparator().isEmpty());
     }
 
     @Test

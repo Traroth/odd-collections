@@ -29,7 +29,31 @@ Each step has a specific purpose and should not be skipped.
 
 ---
 
+## Model selection
+
+Each step requires a different level of reasoning. Use the model indicated
+below — do not default to the same model for every step.
+
+| Step | Model | Reason |
+|------|-------|--------|
+| 1 — Discussion | **Opus** | Open-ended architectural reasoning; errors here propagate to all subsequent steps |
+| 2 — Stub + JML | **Sonnet** | Precision required; structure already defined by step 1 |
+| 3 — Design review | **Sonnet** | Validation against an existing design |
+| 4 — Update ARCHITECTURE.md / INVARIANTS.md | **Sonnet** | Reformulating complex decisions into durable documentation |
+| 5 — Update BACKLOG.md | **Haiku** | Mechanical, well-structured format |
+| 6 — Tests (TDD) | **Sonnet** | Contractual precision required |
+| 7 — Implementation | **Sonnet** | Code generation with fidelity to upstream decisions |
+| 8 — White-box tests | **Sonnet** | Knowledge of internals required |
+| 9 — Static analysis | **Sonnet** | Structured analysis against known criteria |
+| 10 — Test coverage review | **Sonnet** | Structured analysis against known criteria |
+| 11 — Documentation | **Sonnet** / **Haiku** | Sonnet if the API or architecture changed; Haiku for minor updates |
+| 12 — Session wrap-up | **Haiku** | Mechanical backlog and readme updates |
+
+---
+
 ## 1. Discussion
+
+**Use Plan mode** — no code modifications should be made during this step.
 
 Before writing any code, discuss the design of the class or structure.
 
@@ -64,6 +88,8 @@ and the black‑box tests will be written against.
 ---
 
 ## 3. Design review
+
+**Use Plan mode** — no code modifications should be made during this step.
 
 Run the `design-review` skill.
 
@@ -172,7 +198,9 @@ target behaviour that the implementation must satisfy.
 Replace each `UnsupportedOperationException` stub with a real implementation,
 following the coding standards defined in `.dev/standards/JAVA_STANDARDS.md`.
 
-The goal is to make all black‑box tests pass.
+The goal is to make all black‑box tests pass. Once they do, run the **full
+test suite** (`mvn test`) to verify that no existing class was broken by the
+changes.
 
 Key principles:
 
@@ -232,7 +260,9 @@ The analysis verifies:
 - null handling
 - coding standards
 
-Resolve all **Critical issues** before continuing.
+Resolve all **Critical issues** before continuing. If a critical issue
+requires changing the implementation, return to step 7, fix the code, and
+re‑run the full test suite before resuming at step 9.
 
 ---
 
@@ -247,7 +277,8 @@ Verify that:
 - edge cases are tested
 - internal edge cases are exercised
 
-Add missing tests if necessary.
+Add missing tests if necessary. If gaps require new white‑box tests, return
+to step 8 and add them, then re‑run the full test suite.
 
 ---
 

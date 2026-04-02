@@ -128,7 +128,7 @@ public class SynchronizedChunkyListBlackBoxTest {
 
     @Test
     public void testConstructor_FromCollection() {
-        List<String> source = Arrays.asList("A", "B", "C", "D", "E");
+        List<String> source = List.of("A", "B", "C", "D", "E");
         SynchronizedChunkyList<String> list = new SynchronizedChunkyList<>(source);
 
         assertEquals(5, list.size());
@@ -270,7 +270,7 @@ public class SynchronizedChunkyListBlackBoxTest {
         it.forEachRemaining(result::add);
 
         // The iterator must not see "D"
-        assertEquals(Arrays.asList("A", "B", "C"), result);
+        assertEquals(List.of("A", "B", "C"), result);
     }
 
     @Test
@@ -286,7 +286,7 @@ public class SynchronizedChunkyListBlackBoxTest {
         List<String> result = new ArrayList<>();
         sp.forEachRemaining(result::add);
 
-        assertEquals(Arrays.asList("A", "B", "C"), result);
+        assertEquals(List.of("A", "B", "C"), result);
     }
 
     @Test
@@ -300,7 +300,7 @@ public class SynchronizedChunkyListBlackBoxTest {
                 .peek(e -> list.add("X")) // attempt to modify during stream
                 .collect(Collectors.toList());
 
-        assertEquals(Arrays.asList("A", "B", "C"), result);
+        assertEquals(List.of("A", "B", "C"), result);
     }
 
     @Test

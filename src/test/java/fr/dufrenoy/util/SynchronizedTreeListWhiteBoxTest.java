@@ -27,7 +27,9 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -158,9 +160,9 @@ public class SynchronizedTreeListWhiteBoxTest {
         }
 
         int threadCount = 8;
-        CountDownLatch start        = new CountDownLatch(1);
-        CountDownLatch allStarted   = new CountDownLatch(threadCount);
-        CountDownLatch done         = new CountDownLatch(threadCount);
+        CountDownLatch start         = new CountDownLatch(1);
+        CountDownLatch done          = new CountDownLatch(threadCount);
+        CyclicBarrier  barrier       = new CyclicBarrier(threadCount);
         AtomicInteger  maxConcurrent = new AtomicInteger(0);
         AtomicInteger  active        = new AtomicInteger(0);
         AtomicBoolean  failed        = new AtomicBoolean(false);
@@ -172,14 +174,16 @@ public class SynchronizedTreeListWhiteBoxTest {
                     start.await();
                     int current = active.incrementAndGet();
                     maxConcurrent.accumulateAndGet(current, Math::max);
-                    allStarted.countDown();
-                    // Perform reads while other threads are also reading
+                    // All threads must reach this barrier before any proceeds —
+                    // guarantees that all threadCount threads are counted as active
+                    // simultaneously, regardless of OS scheduling speed.
+                    barrier.await();
                     for (int i = 0; i < list.size(); i++) {
                         list.get(i);
                         list.contains(i);
                     }
                     active.decrementAndGet();
-                } catch (Exception e) {
+                } catch (InterruptedException | BrokenBarrierException e) {
                     failed.set(true);
                 } finally {
                     done.countDown();
@@ -192,9 +196,8 @@ public class SynchronizedTreeListWhiteBoxTest {
         executor.shutdown();
 
         assertFalse(failed.get(), "A reader thread threw an exception");
-        // All threads were active before the first one finished — confirms concurrency
-        assertTrue(maxConcurrent.get() > 1,
-                "Expected concurrent readers, but max active was " + maxConcurrent.get());
+        assertEquals(threadCount, maxConcurrent.get(),
+                "Expected all " + threadCount + " readers active simultaneously");
     }
 
     // ─── Concurrent writes — write lock serializes ────────────────────────────

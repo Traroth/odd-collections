@@ -14,7 +14,13 @@ of each session.
 - [ ] `Tuple` — a type-safe immutable tuple system without one class per arity
 - [ ] `CircularBuffer` — a circular doubly-linked list backed by a ring of nodes
 - [ ] Implement `Serializable` on all data structures
-- [ ] Set up multi-release JAR with Java 21 variant
+- [ ] Set up multi-release JAR with Java 21 variant — chosen approach:
+  full duplication of interfaces and classes in the Java 21 layer
+  (no base class extraction, no cross-layer inheritance).
+  Java 21 classes are independent copies, free to fully leverage Java 21
+  APIs (`SequencedCollection`, etc.).
+  Accepted trade-off: bug fixes and evolutions must be applied in both
+  layers. To be done once all classes are complete.
 - [ ] Update project description for GitHub (`pom.xml` and repository)
 - [ ] Port odd-collections to TypeScript
 - [ ] Port odd-collections to Python

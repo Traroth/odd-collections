@@ -165,7 +165,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
     @Test
     public void testGetKey_AbsentValue_ReturnsEmpty() {
         SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
-        assertFalse(map.getKey(99).isPresent());
+        assertTrue(map.getKey(99).isEmpty());
     }
 
     @Test
@@ -259,7 +259,7 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
     @Test
     public void testRemoveByValue_AbsentValue_ReturnsNull() {
         SymmetricMap<String, Integer> map = new UnsynchronizedSymmetricMap<>();
-        assertFalse(map.removeByValue(99).isPresent());
+        assertTrue(map.removeByValue(99).isEmpty());
     }
 
     @Test

@@ -80,7 +80,7 @@ public class UnsynchronizedChunkyListBlackBoxTest {
         Spliterator<String> spliterator = list.spliterator();
         List<String> result = new ArrayList<>();
         while (spliterator.tryAdvance(result::add));
-        assertEquals(Arrays.asList("A", "B", "C"), result);
+        assertEquals(List.of("A", "B", "C"), result);
     }
 
     @Test
@@ -93,7 +93,7 @@ public class UnsynchronizedChunkyListBlackBoxTest {
         List<String> result = list.stream()
                 .map(String::toLowerCase)
                 .collect(java.util.stream.Collectors.toList());
-        assertEquals(Arrays.asList("a", "b", "c"), result);
+        assertEquals(List.of("a", "b", "c"), result);
     }
 
     @Test
@@ -165,13 +165,13 @@ public class UnsynchronizedChunkyListBlackBoxTest {
     @Test
     public void testAddAll_OnEmptyList_AddsAllElements() {
         UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
-        List<String> toAdd = Arrays.asList("A", "B", "C", "D", "E");
+        List<String> toAdd = List.of("A", "B", "C", "D", "E");
 
         boolean modified = list.addAll(toAdd);
 
         assertTrue(modified);
         assertEquals(5, list.size());
-        assertEquals(Arrays.asList("A", "B", "C", "D", "E"),
+        assertEquals(List.of("A", "B", "C", "D", "E"),
                 new ArrayList<>(list));
     }
 
@@ -180,13 +180,13 @@ public class UnsynchronizedChunkyListBlackBoxTest {
         UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
         list.add("A");
         list.add("B");
-        List<String> toAdd = Arrays.asList("C", "D", "E");
+        List<String> toAdd = List.of("C", "D", "E");
 
         boolean modified = list.addAll(toAdd);
 
         assertTrue(modified);
         assertEquals(5, list.size());
-        assertEquals(Arrays.asList("A", "B", "C", "D", "E"),
+        assertEquals(List.of("A", "B", "C", "D", "E"),
                 new ArrayList<>(list));
     }
 
@@ -236,11 +236,11 @@ public class UnsynchronizedChunkyListBlackBoxTest {
     public void testAddAll_WithLinkedList_PreservesOrder() {
         UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
         list.add("A");
-        LinkedList<String> toAdd = new LinkedList<>(Arrays.asList("B", "C", "D"));
+        LinkedList<String> toAdd = new LinkedList<>(List.of("B", "C", "D"));
 
         list.addAll(toAdd);
 
         assertEquals(4, list.size());
-        assertEquals(Arrays.asList("A", "B", "C", "D"), new ArrayList<>(list));
+        assertEquals(List.of("A", "B", "C", "D"), new ArrayList<>(list));
     }
 }

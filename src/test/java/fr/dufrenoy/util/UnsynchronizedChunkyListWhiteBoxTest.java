@@ -209,7 +209,7 @@ public class UnsynchronizedChunkyListWhiteBoxTest {
     public void testAddAll_OnEmptyList_CreatesCorrectNumberOfChunks() {
         // chunkSize=3, adding 7 elements → ceil(7/3) = 3 chunks
         UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
-        list.addAll(Arrays.asList("A", "B", "C", "D", "E", "F", "G"));
+        list.addAll(List.of("A", "B", "C", "D", "E", "F", "G"));
 
         assertEquals(7, list.size());
         assertEquals(3, list.countChunks());
@@ -226,7 +226,7 @@ public class UnsynchronizedChunkyListWhiteBoxTest {
         list.add("C");
         list.add("D");
         list.add("E"); // 2 chunks: [A,B,C] [D,E]
-        list.addAll(Arrays.asList("F", "G", "H", "I"));
+        list.addAll(List.of("F", "G", "H", "I"));
         // [A,B,C] [D,E,F] [G,H,I] → 3 chunks
         assertEquals(9, list.size());
         assertEquals(3, list.countChunks());
@@ -236,7 +236,7 @@ public class UnsynchronizedChunkyListWhiteBoxTest {
     public void testAddAll_ExactlyFillsWholeChunks() {
         // chunkSize=3, adding 6 elements on empty list → exactly 2 full chunks
         UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
-        list.addAll(Arrays.asList("A", "B", "C", "D", "E", "F"));
+        list.addAll(List.of("A", "B", "C", "D", "E", "F"));
 
         assertEquals(6, list.size());
         assertEquals(2, list.countChunks());
@@ -246,7 +246,7 @@ public class UnsynchronizedChunkyListWhiteBoxTest {
     public void testAddAll_LastChunkPartiallyFilled() {
         // chunkSize=3, adding 5 elements → 2 chunks: 1 full + 1 with 2 elements
         UnsynchronizedChunkyList<String> list = new UnsynchronizedChunkyList<>(3);
-        list.addAll(Arrays.asList("A", "B", "C", "D", "E"));
+        list.addAll(List.of("A", "B", "C", "D", "E"));
 
         assertEquals(5, list.size());
         assertEquals(2, list.countChunks());
@@ -261,7 +261,7 @@ public class UnsynchronizedChunkyListWhiteBoxTest {
         list.add("A");
         list.add("B");
         list.add("C");
-        list.addAll(Arrays.asList("D", "E", "F"));
+        list.addAll(List.of("D", "E", "F"));
 
         assertEquals(6, list.size());
         assertEquals(2, list.countChunks());

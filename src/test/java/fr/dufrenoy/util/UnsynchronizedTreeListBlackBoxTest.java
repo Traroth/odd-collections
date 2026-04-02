@@ -55,7 +55,7 @@ public class UnsynchronizedTreeListBlackBoxTest {
     @Test
     public void testDefaultConstructor_NaturalOrdering() {
         TreeList<Integer> list = new UnsynchronizedTreeList<>();
-        assertFalse(list.comparator().isPresent());
+        assertTrue(list.comparator().isEmpty());
     }
 
     @Test
@@ -68,7 +68,7 @@ public class UnsynchronizedTreeListBlackBoxTest {
 
     @Test
     public void testConstructor_WithCollection_ContainsAllElements() {
-        List<Integer> source = Arrays.asList(3, 1, 4, 1, 5, 9, 2, 6);
+        List<Integer> source = List.of(3, 1, 4, 1, 5, 9, 2, 6);
         TreeList<Integer> list = new UnsynchronizedTreeList<>(source);
         assertTrue(list.contains(1));
         assertTrue(list.contains(3));
@@ -77,14 +77,14 @@ public class UnsynchronizedTreeListBlackBoxTest {
 
     @Test
     public void testConstructor_WithCollection_DuplicatesDiscarded() {
-        List<Integer> source = Arrays.asList(1, 2, 2, 3, 3, 3);
+        List<Integer> source = List.of(1, 2, 2, 3, 3, 3);
         TreeList<Integer> list = new UnsynchronizedTreeList<>(source);
         assertEquals(3, list.size());
     }
 
     @Test
     public void testConstructor_WithCollection_IsSorted() {
-        List<Integer> source = Arrays.asList(5, 3, 1, 4, 2);
+        List<Integer> source = List.of(5, 3, 1, 4, 2);
         TreeList<Integer> list = new UnsynchronizedTreeList<>(source);
         for (int i = 0; i < list.size() - 1; i++) {
             assertTrue(list.get(i) < list.get(i + 1));
@@ -104,7 +104,7 @@ public class UnsynchronizedTreeListBlackBoxTest {
 
     @Test
     public void testConstructor_WithComparatorAndCollection_UseComparator() {
-        List<Integer> source = Arrays.asList(1, 2, 3);
+        List<Integer> source = List.of(1, 2, 3);
         TreeList<Integer> list = new UnsynchronizedTreeList<>(Comparator.reverseOrder(), source);
         assertEquals(3, list.get(0));
         assertEquals(2, list.get(1));
@@ -335,7 +335,7 @@ public class UnsynchronizedTreeListBlackBoxTest {
         list.add(2);
         list.add(3);
         list.add(4);
-        list.removeAll(Arrays.asList(2, 4));
+        list.removeAll(List.of(2, 4));
         assertFalse(list.contains(2));
         assertFalse(list.contains(4));
         assertEquals(2, list.size());
@@ -346,7 +346,7 @@ public class UnsynchronizedTreeListBlackBoxTest {
         TreeList<Integer> list = new UnsynchronizedTreeList<>();
         list.add(1);
         list.add(2);
-        assertFalse(list.removeAll(Arrays.asList(99, 100)));
+        assertFalse(list.removeAll(List.of(99, 100)));
     }
 
     @Test
@@ -354,7 +354,7 @@ public class UnsynchronizedTreeListBlackBoxTest {
         TreeList<Integer> list = new UnsynchronizedTreeList<>();
         list.add(1);
         list.add(2);
-        assertTrue(list.removeAll(Arrays.asList(1, 99)));
+        assertTrue(list.removeAll(List.of(1, 99)));
     }
 
     @Test
@@ -365,7 +365,7 @@ public class UnsynchronizedTreeListBlackBoxTest {
         list.add(3);
         list.add(4);
         list.add(5);
-        list.removeAll(Arrays.asList(2, 4));
+        list.removeAll(List.of(2, 4));
         for (int i = 0; i < list.size() - 1; i++) {
             assertTrue(list.get(i) < list.get(i + 1));
         }
@@ -378,7 +378,7 @@ public class UnsynchronizedTreeListBlackBoxTest {
         list.add(2);
         list.add(3);
         list.add(4);
-        list.retainAll(Arrays.asList(2, 4));
+        list.retainAll(List.of(2, 4));
         assertTrue(list.contains(2));
         assertTrue(list.contains(4));
         assertFalse(list.contains(1));
@@ -391,7 +391,7 @@ public class UnsynchronizedTreeListBlackBoxTest {
         TreeList<Integer> list = new UnsynchronizedTreeList<>();
         list.add(1);
         list.add(2);
-        assertFalse(list.retainAll(Arrays.asList(1, 2, 3)));
+        assertFalse(list.retainAll(List.of(1, 2, 3)));
     }
 
     @Test
@@ -411,7 +411,7 @@ public class UnsynchronizedTreeListBlackBoxTest {
     @Test
     public void testAddAll_AddsAllElements() {
         TreeList<Integer> list = new UnsynchronizedTreeList<>();
-        list.addAll(Arrays.asList(3, 1, 2));
+        list.addAll(List.of(3, 1, 2));
         assertEquals(3, list.size());
         assertTrue(list.contains(1));
         assertTrue(list.contains(2));
@@ -422,14 +422,14 @@ public class UnsynchronizedTreeListBlackBoxTest {
     public void testAddAll_DuplicatesDiscarded() {
         TreeList<Integer> list = new UnsynchronizedTreeList<>();
         list.add(1);
-        list.addAll(Arrays.asList(1, 2, 3));
+        list.addAll(List.of(1, 2, 3));
         assertEquals(3, list.size());
     }
 
     @Test
     public void testAddAll_MaintainsSortedOrder() {
         TreeList<Integer> list = new UnsynchronizedTreeList<>();
-        list.addAll(Arrays.asList(5, 3, 1, 4, 2));
+        list.addAll(List.of(5, 3, 1, 4, 2));
         for (int i = 0; i < list.size() - 1; i++) {
             assertTrue(list.get(i) < list.get(i + 1));
         }
@@ -447,14 +447,14 @@ public class UnsynchronizedTreeListBlackBoxTest {
     public void testContainsAll_AllPresent_ReturnsTrue() {
         TreeList<Integer> list = new UnsynchronizedTreeList<>();
         list.add(1); list.add(2); list.add(3);
-        assertTrue(list.containsAll(Arrays.asList(1, 2)));
+        assertTrue(list.containsAll(List.of(1, 2)));
     }
 
     @Test
     public void testContainsAll_SomeAbsent_ReturnsFalse() {
         TreeList<Integer> list = new UnsynchronizedTreeList<>();
         list.add(1); list.add(2);
-        assertFalse(list.containsAll(Arrays.asList(1, 99)));
+        assertFalse(list.containsAll(List.of(1, 99)));
     }
 
     // ─── clear ────────────────────────────────────────────────────────────────
