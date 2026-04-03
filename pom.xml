@@ -180,14 +180,60 @@
   <profiles>
 
     <!-- ─── OpenJML formal verification ─────────────────────────────────────── -->
-    <!-- Requires OpenJML 21+ installed in WSL (Ubuntu).                        -->
-    <!-- Set OPENJML_HOME in WSL to the directory containing the openjml binary -->
-    <!-- (e.g. export OPENJML_HOME=/home/user/openjml in ~/.bashrc).            -->
-    <!-- Activate in IntelliJ: Maven panel > Profiles > check 'openjml'         -->
-    <!-- Activate on command line: mvn verify -P openjml                         -->
+    <!-- Set openjml.home in ~/.m2/settings.xml to the directory containing     -->
+    <!-- the openjml binary.                                                    -->
+    <!--   - On Linux or macOS: native path (e.g. /opt/openjml)                  -->
+    <!--   - On Windows: WSL path (e.g. /home/alexis/openjml)                   -->
+    <!-- Activate on command line:                                                -->
+    <!--   mvn verify -P openjml-unix       (Linux, macOS)                      -->
+    <!--   mvn verify -P openjml-windows    (Windows via WSL)                   -->
+    <!-- Activate in IntelliJ: Maven panel > Profiles > check the relevant one  -->
 
     <profile>
-      <id>openjml</id>
+      <id>openjml-unix</id>
+      <activation>
+        <os><family>unix</family></os>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.1.0</version>
+            <executions>
+              <execution>
+                <id>openjml-verify</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>${openjml.home}/openjml</executable>
+                  <arguments>
+                    <argument>--esc</argument>
+                    <argument>--progress</argument>
+                    <argument>-sourcepath</argument>
+                    <argument>${project.basedir}/src/main/java</argument>
+                    <argument>${project.basedir}/src/main/java/fr/dufrenoy/util/UnsynchronizedSymmetricMap.java</argument>
+                  </arguments>
+                  <successCodes>
+                    <successCode>0</successCode>
+                    <successCode>1</successCode>
+                    <successCode>2</successCode>
+                  </successCodes>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>openjml-windows</id>
+      <activation>
+        <os><family>windows</family></os>
+      </activation>
       <build>
         <plugins>
           <plugin>
@@ -205,8 +251,8 @@
                   <executable>wsl</executable>
                   <arguments>
                     <argument>bash</argument>
-                    <argument>-c</argument>
-                    <argument>PROJECT_WSL=$(wslpath '${project.basedir}') &amp;&amp; "$OPENJML_HOME/openjml" --esc --progress -sourcepath "$PROJECT_WSL/src/main/java" "$PROJECT_WSL/src/main/java/fr/dufrenoy/util/UnsynchronizedSymmetricMap.java"</argument>
+                    <argument>-lc</argument>
+                    <argument>${openjml.home}/openjml --esc --progress -sourcepath "$(wslpath -u '${project.basedir}')/src/main/java" "$(wslpath -u '${project.basedir}')/src/main/java/fr/dufrenoy/util/UnsynchronizedSymmetricMap.java"</argument>
                   </arguments>
                   <successCodes>
                     <successCode>0</successCode>

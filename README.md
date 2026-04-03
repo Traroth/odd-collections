@@ -323,9 +323,13 @@ TreeList<Integer> list = new SynchronizedTreeList<>();
   and Checkstyle 10.x)
 - A **Java 21 runtime** is recommended to take advantage of the optimized
   implementations provided via the multi-release JAR (planned)
-- **OpenJML 21.0.23 or later** in WSL (Ubuntu) — optional, required only for
-  formal JML verification. Activate with `mvn verify -P openjml` or via the
-  Maven panel in IntelliJ. Download from
+- **OpenJML 21.0.23 or later** — optional, required only for formal JML
+  verification. Set `openjml.home` in `~/.m2/settings.xml` to the directory
+  containing the `openjml` binary, then activate the appropriate profile:
+  - **Linux or macOS**: `mvn verify -P openjml-unix`
+  - **Windows** (via WSL): `mvn verify -P openjml-windows`
+
+  Download from
   [github.com/OpenJML/OpenJML/releases](https://github.com/OpenJML/OpenJML/releases)
 
 This library is packaged as a named module (`fr.dufrenoy.util`). To use it as
