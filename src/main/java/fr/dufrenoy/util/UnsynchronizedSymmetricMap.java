@@ -71,6 +71,13 @@ import java.util.Set;
  * @param <K> the type of keys
  * @param <V> the type of values
  */
+/*@
+  @ public invariant size() >= 0;
+  @ public invariant (\forall K k; containsKey(k);
+  @     getKey(get(k)).isPresent() && Objects.equals(getKey(get(k)).get(), k));
+  @ public invariant (\forall V v; containsValue(v);
+  @     Objects.equals(get(getKey(v).get()), v));
+  @*/
 public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         implements SymmetricMap<K, V> {
 
@@ -92,6 +99,7 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      * Creates a new {@code UnsynchronizedSymmetricMap} with the default initial
      * capacity (16) and load factor (0.75).
      */
+    //@ ensures size() == 0;
     public UnsynchronizedSymmetricMap() {
         this(DEFAULT_INITIAL_CAPACITY, DEFAULT_LOAD_FACTOR);
     }
@@ -103,6 +111,8 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      * @param initialCapacity the initial capacity; must be at least 1
      * @throws IllegalArgumentException if {@code initialCapacity} is less than 1
      */
+    //@ requires initialCapacity >= 1;
+    //@ ensures size() == 0;
     public UnsynchronizedSymmetricMap(int initialCapacity) {
         this(initialCapacity, DEFAULT_LOAD_FACTOR);
     }
@@ -116,6 +126,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      * @throws IllegalArgumentException if {@code initialCapacity} is less than 1
      *                                  or {@code loadFactor} is not positive
      */
+    //@ requires initialCapacity >= 1;
+    //@ requires loadFactor > 0 && !Float.isNaN(loadFactor);
+    //@ ensures size() == 0;
     public UnsynchronizedSymmetricMap(int initialCapacity, float loadFactor) {
         if (initialCapacity < 1)
             throw new IllegalArgumentException("initialCapacity must be at least 1");
@@ -128,6 +141,7 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
 
     // ─── Public methods (Map contract) ────────────────────────────────────────
 
+    //@ ensures \result >= 0;
     @Override
     public int size() {
         return size;
@@ -138,11 +152,13 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         return getEntry(key) != null;
     }
 
+    //@ ensures \result <==> getKey(value).isPresent();
     @Override
     public boolean containsValue(Object value) {
         return getEntryByValue(value) != null;
     }
 
+    //@ ensures !containsKey(key) ==> \result == null;
     @Override
     public V get(Object key) {
         Entry<K, V> e = getEntry(key);
@@ -155,6 +171,8 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      * @return an {@code Optional} containing the key associated with {@code value},
      *         or empty if not found
      */
+    //@ ensures !containsValue(value) ==> \result.isEmpty();
+    //@ ensures  containsValue(value) ==> \result.isPresent();
     @Override
     public Optional<K> getKey(Object value) {
         Entry<K, V> e = getEntryByValue(value);
@@ -172,6 +190,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      * @param value the value
      * @return the previous value associated with {@code key}, or {@code null}
      */
+    //@ ensures containsKey(key);
+    //@ ensures Objects.equals(get(key), value);
+    //@ ensures containsValue(value);
     @Override
     public V put(K key, V value) {
         Entry<K, V> existingByKey = getEntry(key);
@@ -197,6 +218,11 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      *
      * @throws IllegalArgumentException if the key or value already exists
      */
+    //@ requires !containsKey(key);
+    //@ requires !containsValue(value);
+    //@ ensures containsKey(key);
+    //@ ensures Objects.equals(get(key), value);
+    //@ ensures size() == \old(size()) + 1;
     @Override
     public void safePut(K key, V value) {
         if (containsKey(key))
@@ -206,6 +232,11 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         insertEntry(key, value);
     }
 
+    //@ ensures !containsKey(key);
+    //@ ensures  \old(containsKey(key)) ==> size() == \old(size()) - 1;
+    //@ ensures !\old(containsKey(key)) ==> size() == \old(size());
+    //@ ensures  \old(containsKey(key)) ==> \result == \old(get(key));
+    //@ ensures !\old(containsKey(key)) ==> \result == null;
     @Override
     public V remove(Object key) {
         Entry<K, V> e = getEntry(key);
@@ -220,6 +251,11 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      * @return an {@code Optional} containing the key that was associated with {@code value},
      *         or empty if not found
      */
+    //@ ensures !containsValue(value);
+    //@ ensures  \old(containsValue(value)) ==> size() == \old(size()) - 1;
+    //@ ensures !\old(containsValue(value)) ==> size() == \old(size());
+    //@ ensures  \old(containsValue(value)) ==> \result.isPresent();
+    //@ ensures !\old(containsValue(value)) ==> \result.isEmpty();
     @Override
     public Optional<K> removeByValue(Object value) {
         Entry<K, V> e = getEntryByValue(value);
@@ -236,6 +272,10 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      *
      * @return a new {@code UnsynchronizedSymmetricMap<V, K>} with all entries inverted
      */
+    //@ ensures \result != null;
+    //@ ensures \result.size() == size();
+    //@ ensures (\forall K k; containsKey(k); \result.containsKey(get(k)));
+    //@ ensures (\forall K k; containsKey(k); Objects.equals(\result.get(get(k)), k));
     @Override
     public UnsynchronizedSymmetricMap<V, K> inverse() {
         UnsynchronizedSymmetricMap<V, K> inv =
@@ -250,6 +290,7 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         return inv;
     }
 
+    //@ ensures size() == 0;
     @Override
     public void clear() {
         for (Bucket b : table) {
@@ -259,6 +300,8 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         size = 0;
     }
 
+    //@ ensures \result != null;
+    //@ ensures \result.size() == size();
     @Override
     public Set<K> keySet() {
         return new KeySetView();
@@ -271,11 +314,15 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      * returns a {@link Set}{@code <V>} rather than a
      * {@code Collection<V>}.
      */
+    //@ ensures \result != null;
+    //@ ensures \result.size() == size();
     @Override
     public Set<V> values() {
         return new ValueSetView();
     }
 
+    //@ ensures \result != null;
+    //@ ensures \result.size() == size();
     @Override
     public Set<Map.Entry<K, V>> entrySet() {
         return new EntrySetView();

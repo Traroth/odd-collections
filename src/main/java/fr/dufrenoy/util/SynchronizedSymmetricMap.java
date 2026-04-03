@@ -54,6 +54,13 @@ import java.util.function.BiFunction;
  * @param <K> the type of keys
  * @param <V> the type of values
  */
+/*@
+  @ public invariant size() >= 0;
+  @ public invariant (\forall K k; containsKey(k);
+  @     getKey(get(k)).isPresent() && Objects.equals(getKey(get(k)).get(), k));
+  @ public invariant (\forall V v; containsValue(v);
+  @     Objects.equals(get(getKey(v).get()), v));
+  @*/
 public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
 
     // ─── Instance fields ──────────────────────────────────────────────────────
@@ -69,6 +76,7 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
      * Creates a new {@code SynchronizedSymmetricMap} with the default initial
      * capacity (16) and load factor (0.75).
      */
+    //@ ensures size() == 0;
     public SynchronizedSymmetricMap() {
         this.inner = new UnsynchronizedSymmetricMap<>();
     }
@@ -80,6 +88,8 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
      * @param initialCapacity the initial capacity; must be at least 1
      * @throws IllegalArgumentException if {@code initialCapacity} is less than 1
      */
+    //@ requires initialCapacity >= 1;
+    //@ ensures size() == 0;
     public SynchronizedSymmetricMap(int initialCapacity) {
         this.inner = new UnsynchronizedSymmetricMap<>(initialCapacity);
     }
@@ -93,12 +103,17 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
      * @throws IllegalArgumentException if {@code initialCapacity} is less than 1
      *                                  or {@code loadFactor} is not positive
      */
+    //@ requires initialCapacity >= 1;
+    //@ requires loadFactor > 0 && !Float.isNaN(loadFactor);
+    //@ ensures size() == 0;
     public SynchronizedSymmetricMap(int initialCapacity, float loadFactor) {
         this.inner = new UnsynchronizedSymmetricMap<>(initialCapacity, loadFactor);
     }
 
     // ─── SymmetricMap contract ────────────────────────────────────────────────
 
+    //@ ensures !containsValue(value) ==> \result.isEmpty();
+    //@ ensures  containsValue(value) ==> \result.isPresent();
     @Override
     public Optional<K> getKey(Object value) {
         readLock.lock();
@@ -109,6 +124,11 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
     }
 
+    //@ requires !containsKey(key);
+    //@ requires !containsValue(value);
+    //@ ensures containsKey(key);
+    //@ ensures Objects.equals(get(key), value);
+    //@ ensures size() == \old(size()) + 1;
     @Override
     public void safePut(K key, V value) {
         writeLock.lock();
@@ -119,6 +139,11 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
     }
 
+    //@ ensures !containsValue(value);
+    //@ ensures  \old(containsValue(value)) ==> size() == \old(size()) - 1;
+    //@ ensures !\old(containsValue(value)) ==> size() == \old(size());
+    //@ ensures  \old(containsValue(value)) ==> \result.isPresent();
+    //@ ensures !\old(containsValue(value)) ==> \result.isEmpty();
     @Override
     public Optional<K> removeByValue(Object value) {
         writeLock.lock();
@@ -136,6 +161,10 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
      *
      * @return a new {@code SynchronizedSymmetricMap<V, K>} with all entries inverted
      */
+    //@ ensures \result != null;
+    //@ ensures \result.size() == size();
+    //@ ensures (\forall K k; containsKey(k); \result.containsKey(get(k)));
+    //@ ensures (\forall K k; containsKey(k); Objects.equals(\result.get(get(k)), k));
     @Override
     public SynchronizedSymmetricMap<V, K> inverse() {
         readLock.lock();
@@ -160,6 +189,8 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
      * <p><strong>Memory note:</strong> each call to {@link Set#iterator()} copies
      * the entire entry set.
      */
+    //@ ensures \result != null;
+    //@ ensures \result.size() == size();
     @Override
     public Set<V> values() {
         return new SnapshotValueSetView();
@@ -167,6 +198,7 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
 
     // ─── Map contract ─────────────────────────────────────────────────────────
 
+    //@ ensures \result >= 0;
     @Override
     public int size() {
         readLock.lock();
@@ -177,6 +209,7 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
     }
 
+    //@ ensures \result <==> size() == 0;
     @Override
     public boolean isEmpty() {
         readLock.lock();
@@ -197,6 +230,7 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
     }
 
+    //@ ensures \result <==> getKey(value).isPresent();
     @Override
     public boolean containsValue(Object value) {
         readLock.lock();
@@ -207,6 +241,7 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
     }
 
+    //@ ensures !containsKey(key) ==> \result == null;
     @Override
     public V get(Object key) {
         readLock.lock();
@@ -217,6 +252,9 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
     }
 
+    //@ ensures containsKey(key);
+    //@ ensures Objects.equals(get(key), value);
+    //@ ensures containsValue(value);
     @Override
     public V put(K key, V value) {
         writeLock.lock();
@@ -227,6 +265,11 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
     }
 
+    //@ ensures !containsKey(key);
+    //@ ensures  \old(containsKey(key)) ==> size() == \old(size()) - 1;
+    //@ ensures !\old(containsKey(key)) ==> size() == \old(size());
+    //@ ensures  \old(containsKey(key)) ==> \result == \old(get(key));
+    //@ ensures !\old(containsKey(key)) ==> \result == null;
     @Override
     public V remove(Object key) {
         writeLock.lock();
@@ -237,6 +280,8 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
     }
 
+    //@ requires m != null;
+    //@ ensures (\forall K k; m.containsKey(k); containsKey(k));
     @Override
     public void putAll(Map<? extends K, ? extends V> m) {
         writeLock.lock();
@@ -247,6 +292,7 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
     }
 
+    //@ ensures size() == 0;
     @Override
     public void clear() {
         writeLock.lock();
@@ -257,6 +303,8 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
     }
 
+    //@ ensures  \old(containsKey(key)) ==> Objects.equals(get(key), value);
+    //@ ensures !\old(containsKey(key)) ==> \result == null;
     @Override
     public V replace(K key, V value) {
         writeLock.lock();
@@ -267,6 +315,7 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
     }
 
+    //@ ensures \result ==> Objects.equals(get(key), newValue);
     @Override
     public boolean replace(K key, V oldValue, V newValue) {
         writeLock.lock();
@@ -287,6 +336,8 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
      *
      * @param function the remapping function
      */
+    //@ requires function != null;
+    //@ ensures size() <= \old(size());
     @Override
     public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
         Objects.requireNonNull(function);
@@ -347,6 +398,8 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
      * <p><strong>Memory note:</strong> each call to {@link Set#iterator()} copies
      * the entire entry set.
      */
+    //@ ensures \result != null;
+    //@ ensures \result.size() == size();
     @Override
     public Set<K> keySet() {
         return new SnapshotKeySetView();
@@ -362,6 +415,8 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
      * <p><strong>Memory note:</strong> each call to {@link Set#iterator()} copies
      * the entire entry set.
      */
+    //@ ensures \result != null;
+    //@ ensures \result.size() == size();
     @Override
     public Set<Map.Entry<K, V>> entrySet() {
         return new SnapshotEntrySetView();

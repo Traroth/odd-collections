@@ -360,8 +360,10 @@ Avoid generating large complex classes in a single step.
 | Skill                      | Role                                          |
 |----------------------------|-----------------------------------------------|
 | `design-review`            | Validate architecture before coding           |
+| `jml-design`               | Write JML contracts during step 2             |
 | `static-analysis`          | Detect structural and contract issues         |
 | `test-coverage-review`     | Verify test completeness                      |
+| `jml-test-generation`      | Derive tests from JML specs                   |
 | `api-consistency-check`    | Verify API consistency across the library     |
 | `architecture-drift-check` | Verify implementation matches design          |
 | `update-backlog`           | Maintain project task tracking                |

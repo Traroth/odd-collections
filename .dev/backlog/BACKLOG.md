@@ -35,15 +35,8 @@ of each session.
 
 - [ ] Fix 4 OpenJML errors: `strictly_pure` methods may not call `spec_pure`
   methods — `size()` in `KeySetView`, `ValueSetView`, `EntrySetView`
-- [ ] Add JML `@invariant` annotations to `UnsynchronizedSymmetricMap`
-- [ ] Add JML `@invariant` annotations to `UnsynchronizedChunkyList`
-- [ ] Add JML `@requires` / `@ensures` contracts to key mutation methods
-  (`put`, `remove`, `removeByValue`, `safePut`, `insertEntry`, `removeEntry`)
 - [ ] Complete `INVARIANTS.md` with concrete invariants derived from JML
   annotations
-- [ ] Explore JMLUnit for test generation from JML contracts
-- [ ] Create `jml-design` skill — write JML contracts during design phase
-- [ ] Create `jml-test-generation` skill — generate tests from JML contracts
 - [ ] Explore KeY integration for formal program verification
 
 ---
@@ -87,6 +80,18 @@ Each item should be benchmarked before and after to confirm impact.
 ---
 
 ## Done
+
+### JML / Formal verification
+
+- [x] Add JML `@invariant` annotations and `@requires` / `@ensures` contracts
+  to `UnsynchronizedChunkyList` and `SynchronizedChunkyList`
+- [x] Add JML `@invariant` annotations and `@requires` / `@ensures` contracts
+  to `UnsynchronizedSymmetricMap` and `SynchronizedSymmetricMap`
+- [x] Add JML `@requires` / `@ensures` contracts to key mutation methods
+  (`put`, `remove`, `removeByValue`, `safePut`)
+- [x] Create `jml-design` skill — write JML contracts during design phase
+- [x] Create `jml-test-generation` skill — generate tests from JML contracts
+  (Claude-driven, no JMLUnit dependency — JMLUnit is dormant since ~2014)
 
 ### Project-wide
 
@@ -181,3 +186,14 @@ Each item should be benchmarked before and after to confirm impact.
   benchmark conclusions and performance profile
 - [x] Transition to Claude Code (JetBrains plugin) as primary coding agent
 - [x] `TreeList`
+
+---
+
+## Rejected
+
+Items that were explored and deliberately discarded.
+
+- **JMLUnit for test generation** — JMLUnit and JMLUnit-NG are dormant
+  since ~2014, do not support Java 8+. No actively maintained alternative
+  exists. Replaced by the `jml-test-generation` skill (Claude-driven test
+  derivation from JML specs, optionally complemented by OpenJML RAC).

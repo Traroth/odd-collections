@@ -43,6 +43,13 @@ import java.util.function.UnaryOperator;
  *
  * @param <E> the type of elements in this list
  */
+/*@
+  @ public invariant size() >= 0;
+  @ public invariant (\forall int i; 0 <= i && i < size(); get(i) != null);
+  @ public invariant getChunkSize() >= 1;
+  @ public invariant getCurrentGrowingStrategy() != null;
+  @ public invariant getCurrentShrinkingStrategy() != null;
+  @*/
 public class SynchronizedChunkyList<E> implements ChunkyList<E> {
 
     // ─── Instance fields ──────────────────────────────────────────────────────
@@ -57,6 +64,10 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
     /**
      * Creates a new {@code SynchronizedChunkyList} with the default chunk size.
      */
+    //@ ensures size() == 0;
+    //@ ensures getChunkSize() == 100;
+    //@ ensures getCurrentGrowingStrategy() == GrowingStrategy.OVERFLOW_STRATEGY;
+    //@ ensures getCurrentShrinkingStrategy() == ShrinkingStrategy.UNDERFLOW_STRATEGY;
     public SynchronizedChunkyList() {
         this.inner = new UnsynchronizedChunkyList<>();
     }
@@ -66,6 +77,11 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
      *
      * @param chunkSize the number of elements per chunk; must be at least 1
      */
+    //@ requires chunkSize >= 1;
+    //@ ensures size() == 0;
+    //@ ensures getChunkSize() == chunkSize;
+    //@ ensures getCurrentGrowingStrategy() == GrowingStrategy.OVERFLOW_STRATEGY;
+    //@ ensures getCurrentShrinkingStrategy() == ShrinkingStrategy.UNDERFLOW_STRATEGY;
     public SynchronizedChunkyList(int chunkSize) {
         this.inner = new UnsynchronizedChunkyList<>(chunkSize);
     }
@@ -79,6 +95,12 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
      *
      * @param other the list to copy
      */
+    //@ requires other != null;
+    //@ ensures size() == other.size();
+    //@ ensures getChunkSize() == other.getChunkSize();
+    //@ ensures getCurrentGrowingStrategy() == other.getCurrentGrowingStrategy();
+    //@ ensures getCurrentShrinkingStrategy() == other.getCurrentShrinkingStrategy();
+    //@ ensures (\forall int i; 0 <= i && i < size(); get(i).equals(other.get(i)));
     public SynchronizedChunkyList(SynchronizedChunkyList<? extends E> other) {
         other.readLock.lock();
         try {
@@ -101,6 +123,13 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
      * @param chunkSize the new chunk size; must be at least 1
      * @param other     the list to copy
      */
+    //@ requires chunkSize >= 1;
+    //@ requires other != null;
+    //@ ensures size() == other.size();
+    //@ ensures getChunkSize() == chunkSize;
+    //@ ensures getCurrentGrowingStrategy() == other.getCurrentGrowingStrategy();
+    //@ ensures getCurrentShrinkingStrategy() == other.getCurrentShrinkingStrategy();
+    //@ ensures (\forall int i; 0 <= i && i < size(); get(i).equals(other.get(i)));
     public SynchronizedChunkyList(int chunkSize, SynchronizedChunkyList<? extends E> other) {
         other.readLock.lock();
         try {
@@ -120,6 +149,10 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
      *
      * @param c the collection whose elements are to be placed into this list
      */
+    //@ requires c != null;
+    //@ requires (\forall Object e; c.contains(e); e != null);
+    //@ ensures size() == c.size();
+    //@ ensures getChunkSize() == 100;
     public SynchronizedChunkyList(Collection<? extends E> c) {
         this.inner = new UnsynchronizedChunkyList<>(c);
     }
@@ -132,6 +165,11 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
      * @param chunkSize the number of elements per chunk; must be at least 1
      * @param c         the collection whose elements are to be placed into this list
      */
+    //@ requires chunkSize >= 1;
+    //@ requires c != null;
+    //@ requires (\forall Object e; c.contains(e); e != null);
+    //@ ensures size() == c.size();
+    //@ ensures getChunkSize() == chunkSize;
     public SynchronizedChunkyList(int chunkSize, Collection<? extends E> c) {
         this.inner = new UnsynchronizedChunkyList<>(chunkSize, c);
     }
@@ -142,11 +180,13 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
      * Returns the Chunksize, which is final, so no need for locking.
      * @return the chunk size of this list
      */
+    //@ ensures \result >= 1;
     @Override
     public int getChunkSize() {
         return inner.getChunkSize();
     }
 
+    //@ ensures \result != null;
     @Override
     public GrowingStrategy getCurrentGrowingStrategy() {
         readLock.lock();
@@ -157,6 +197,8 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires growingStrategy != null;
+    //@ ensures getCurrentGrowingStrategy() == growingStrategy;
     @Override
     public void setCurrentGrowingStrategy(GrowingStrategy growingStrategy) {
         writeLock.lock();
@@ -167,6 +209,7 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ ensures \result != null;
     @Override
     public ShrinkingStrategy getCurrentShrinkingStrategy() {
         readLock.lock();
@@ -177,6 +220,8 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires shrinkingStrategy != null;
+    //@ ensures getCurrentShrinkingStrategy() == shrinkingStrategy;
     @Override
     public void setCurrentShrinkingStrategy(ShrinkingStrategy shrinkingStrategy) {
         writeLock.lock();
@@ -191,6 +236,10 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
      * Sets both strategies atomically under a single write lock, guaranteeing
      * that no operation can observe an inconsistent intermediate state.
      */
+    //@ requires growingStrategy != null;
+    //@ requires shrinkingStrategy != null;
+    //@ ensures getCurrentGrowingStrategy() == growingStrategy;
+    //@ ensures getCurrentShrinkingStrategy() == shrinkingStrategy;
     @Override
     public void setStrategies(GrowingStrategy growingStrategy, ShrinkingStrategy shrinkingStrategy) {
         writeLock.lock();
@@ -203,6 +252,7 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
 
     // ─── List contract ────────────────────────────────────────────────────────
 
+    //@ ensures \result >= 0;
     @Override
     public int size() {
         readLock.lock();
@@ -213,6 +263,7 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ ensures \result <==> size() == 0;
     @Override
     public boolean isEmpty() {
         readLock.lock();
@@ -223,6 +274,7 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ ensures \result <==> (\exists int i; 0 <= i && i < size(); get(i).equals(o));
     @Override
     public boolean contains(Object o) {
         readLock.lock();
@@ -233,6 +285,8 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires c != null;
+    //@ ensures \result <==> (\forall Object e; c.contains(e); contains(e));
     @Override
     public boolean containsAll(Collection<?> c) {
         readLock.lock();
@@ -243,6 +297,9 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ ensures \result >= -1 && \result < size();
+    //@ ensures \result == -1 <==> !contains(o);
+    //@ ensures \result >= 0 ==> get(\result).equals(o);
     @Override
     public int indexOf(Object o) {
         readLock.lock();
@@ -253,6 +310,9 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ ensures \result >= -1 && \result < size();
+    //@ ensures \result == -1 <==> !contains(o);
+    //@ ensures \result >= 0 ==> get(\result).equals(o);
     @Override
     public int lastIndexOf(Object o) {
         readLock.lock();
@@ -263,6 +323,8 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires 0 <= index && index < size();
+    //@ ensures \result != null;
     @Override
     public E get(int index) {
         readLock.lock();
@@ -273,6 +335,11 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires element != null;
+    //@ requires 0 <= index && index < size();
+    //@ ensures \result != null;
+    //@ ensures get(index) == element;
+    //@ ensures size() == \old(size());
     @Override
     public E set(int index, E element) {
         if (element == null) throw new IllegalArgumentException("null elements not allowed");
@@ -284,6 +351,10 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires e != null;
+    //@ ensures \result == true;
+    //@ ensures size() == \old(size()) + 1;
+    //@ ensures get(size() - 1).equals(e);
     @Override
     public boolean add(E e) {
         writeLock.lock();
@@ -294,6 +365,10 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires element != null;
+    //@ requires 0 <= index && index <= size();
+    //@ ensures size() == \old(size()) + 1;
+    //@ ensures get(index) == element;
     @Override
     public void add(int index, E element) {
         writeLock.lock();
@@ -304,6 +379,10 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires c != null;
+    //@ requires (\forall Object e; c.contains(e); e != null);
+    //@ ensures \result <==> c.size() > 0;
+    //@ ensures size() == \old(size()) + c.size();
     @Override
     public boolean addAll(Collection<? extends E> c) {
         writeLock.lock();
@@ -314,6 +393,10 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires c != null;
+    //@ requires 0 <= index && index <= size();
+    //@ requires (\forall Object e; c.contains(e); e != null);
+    //@ ensures size() == \old(size()) + c.size();
     @Override
     public boolean addAll(int index, Collection<? extends E> c) {
         writeLock.lock();
@@ -324,6 +407,10 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ ensures \result <==> \old(contains(o));
+    //@ ensures !contains(o);
+    //@ ensures  \old(contains(o)) ==> size() == \old(size()) - 1;
+    //@ ensures !\old(contains(o)) ==> size() == \old(size());
     @Override
     public boolean remove(Object o) {
         writeLock.lock();
@@ -334,6 +421,10 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires 0 <= index && index < size();
+    //@ ensures size() == \old(size()) - 1;
+    //@ ensures \result != null;
+    //@ ensures \result.equals(\old(get(index)));
     @Override
     public E remove(int index) {
         writeLock.lock();
@@ -344,6 +435,8 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires c != null;
+    //@ ensures (\forall Object e; c.contains(e); !contains(e));
     @Override
     public boolean removeAll(Collection<?> c) {
         writeLock.lock();
@@ -354,6 +447,7 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires filter != null;
     @Override
     public boolean removeIf(Predicate<? super E> filter) {
         writeLock.lock();
@@ -364,6 +458,8 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires c != null;
+    //@ ensures (\forall int i; 0 <= i && i < size(); c.contains(get(i)));
     @Override
     public boolean retainAll(Collection<?> c) {
         writeLock.lock();
@@ -374,6 +470,8 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires operator != null;
+    //@ ensures size() == \old(size());
     @Override
     public void replaceAll(UnaryOperator<E> operator) {
         writeLock.lock();
@@ -384,6 +482,7 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ ensures size() == \old(size());
     @Override
     public void sort(Comparator<? super E> c) {
         writeLock.lock();
@@ -394,6 +493,7 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ ensures size() == 0;
     @Override
     public void clear() {
         writeLock.lock();
@@ -404,6 +504,7 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
         }
     }
 
+    //@ requires 0 <= fromIndex && fromIndex <= toIndex && toIndex <= size();
     @Override
     public List<E> subList(int fromIndex, int toIndex) {
         readLock.lock();
@@ -500,6 +601,8 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
      *
      * @see #reorganize(boolean)
      */
+    //@ ensures size() == \old(size());
+    //@ ensures (\forall int i; 0 <= i && i < size(); get(i).equals(\old(get(i))));
     @Override
     public void reorganize() {
         writeLock.lock();
@@ -528,6 +631,7 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
      * @param blocking if {@code true}, holds the write lock for the full duration;
      *                 if {@code false}, uses a non-blocking snapshot strategy
      */
+    //@ ensures size() == \old(size());
     public void reorganize(boolean blocking) {
         if (blocking) {
             reorganize();

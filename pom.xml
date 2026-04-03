@@ -181,6 +181,8 @@
 
     <!-- ─── OpenJML formal verification ─────────────────────────────────────── -->
     <!-- Requires OpenJML 21+ installed in WSL (Ubuntu).                        -->
+    <!-- Set OPENJML_HOME in WSL to the directory containing the openjml binary -->
+    <!-- (e.g. export OPENJML_HOME=/home/user/openjml in ~/.bashrc).            -->
     <!-- Activate in IntelliJ: Maven panel > Profiles > check 'openjml'         -->
     <!-- Activate on command line: mvn verify -P openjml                         -->
 
@@ -202,12 +204,9 @@
                 <configuration>
                   <executable>wsl</executable>
                   <arguments>
-                    <argument>/home/alexis/openjml/openjml</argument>
-                    <argument>--esc</argument>
-                    <argument>--progress</argument>
-                    <argument>-sourcepath</argument>
-                    <argument>/mnt/c/Users/PC/IdeaProjects/odd-collections/src/main/java</argument>
-                    <argument>/mnt/c/Users/PC/IdeaProjects/odd-collections/src/main/java/fr/dufrenoy/util/UnsynchronizedSymmetricMap.java</argument>
+                    <argument>bash</argument>
+                    <argument>-c</argument>
+                    <argument>PROJECT_WSL=$(wslpath '${project.basedir}') &amp;&amp; "$OPENJML_HOME/openjml" --esc --progress -sourcepath "$PROJECT_WSL/src/main/java" "$PROJECT_WSL/src/main/java/fr/dufrenoy/util/UnsynchronizedSymmetricMap.java"</argument>
                   </arguments>
                   <successCodes>
                     <successCode>0</successCode>

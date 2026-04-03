@@ -26,6 +26,8 @@ the corresponding task.
 | After writing tests or when coverage seems insufficient     | `.dev/skills/test-coverage-review/SKILL.md`        |
 | After adding public methods or before a release             | `.dev/skills/api-consistency-check/SKILL.md`       |
 | After significant refactoring or before a release           | `.dev/skills/architecture-drift-check/SKILL.md`    |
+| Writing JML contracts (step 2 or retrofitting)              | `.dev/skills/jml-design/SKILL.md`                  |
+| Generating or reviewing tests from JML specs                | `.dev/skills/jml-test-generation/SKILL.md`         |
 | End of session                                              | `.dev/skills/update-backlog/SKILL.md`              |
 | End of session (if API or roadmap changed)                  | `.dev/skills/update-readme/SKILL.md`               |
 
