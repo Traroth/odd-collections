@@ -43,14 +43,15 @@ import java.util.function.UnaryOperator;
  *
  * @param <E> the type of elements in this list
  */
-/*@
-  @ public invariant size() >= 0;
-  @ public invariant (\forall int i; 0 <= i && i < size(); get(i) != null);
-  @ public invariant getChunkSize() >= 1;
-  @ public invariant getCurrentGrowingStrategy() != null;
-  @ public invariant getCurrentShrinkingStrategy() != null;
-  @*/
 public class SynchronizedChunkyList<E> implements ChunkyList<E> {
+
+    /*@
+      @ public invariant size() >= 0;
+      @ public invariant (\forall int i; 0 <= i && i < size(); get(i) != null);
+      @ public invariant getChunkSize() >= 1;
+      @ public invariant getCurrentGrowingStrategy() != null;
+      @ public invariant getCurrentShrinkingStrategy() != null;
+      @*/
 
     // ─── Instance fields ──────────────────────────────────────────────────────
 

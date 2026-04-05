@@ -55,14 +55,15 @@ import java.util.Optional;
  * @see TreeList
  * @see SynchronizedTreeList
  */
-/*@
-  @ public invariant (\forall int i; 0 <= i && i < size() - 1;
-  @     compare(get(i), get(i + 1)) < 0);
-  @ public invariant size() >= 0;
-  @ public invariant (\forall int i; 0 <= i && i < size(); get(i) != null);
-  @ model public pure helper int compare(E a, E b);
-  @*/
 public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeList<E> {
+
+    /*@
+      @ public invariant (\forall int i; 0 <= i && i < size() - 1;
+      @     compare(get(i), get(i + 1)) < 0);
+      @ public invariant size() >= 0;
+      @ public invariant (\forall int i; 0 <= i && i < size(); get(i) != null);
+      @ model public pure helper int compare(E a, E b);
+      @*/
 
     // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -103,7 +104,7 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      * insert an element that does not will throw a {@link ClassCastException}.
      */
     //@ ensures size() == 0;
-    //@ ensures comparator().isEmpty();
+    //@ ensures !comparator().isPresent();
     public UnsynchronizedTreeList() {
         this.comparator = null;
     }
@@ -116,7 +117,7 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      *                   to use natural ordering
      */
     //@ ensures size() == 0;
-    //@ ensures comparator == null ==> comparator().isEmpty();
+    //@ ensures comparator == null ==> !comparator().isPresent();
     //@ ensures comparator != null ==> comparator().isPresent();
     public UnsynchronizedTreeList(Comparator<? super E> comparator) {
         this.comparator = comparator;
@@ -134,7 +135,7 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      */
     //@ requires c != null;
     //@ requires (\forall Object e; c.contains(e); e != null);
-    //@ ensures comparator().isEmpty();
+    //@ ensures !comparator().isPresent();
     //@ ensures (\forall Object e; c.contains(e); contains(e));
     public UnsynchronizedTreeList(Collection<? extends E> c) {
         this.comparator = null;
@@ -178,8 +179,9 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      *
      * @return the number of elements in this list
      */
-    @Override
+    //@ also
     //@ ensures \result >= 0;
+    @Override
     public int size() {
         return size;
     }
@@ -192,9 +194,10 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      * @return the element at the specified position
      * @throws IndexOutOfBoundsException if {@code index < 0 || index >= size()}
      */
-    @Override
+    //@ also
     //@ requires 0 <= index && index < size();
     //@ ensures \result != null;
+    @Override
     public E get(int index) {
         checkIndex(index);
         return findByIndex(index).element;
@@ -215,7 +218,7 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      *                              the existing elements
      * @throws NullPointerException if {@code e} is {@code null}
      */
-    @Override
+    //@ also
     //@ requires e != null;
     //@ ensures \result <==> !\old(contains(e));
     //@ ensures contains(e);
@@ -223,6 +226,7 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
     //@ ensures  \old(contains(e)) ==> size() == \old(size());
     //@ ensures (\forall int i; 0 <= i && i < size() - 1;
     //@     compare(get(i), get(i + 1)) < 0);
+    @Override
     public boolean add(E e) {
         Objects.requireNonNull(e);
 
@@ -240,7 +244,7 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
 
         while (t != null) {
             parent = t;
-            cmp = compare(e, t.element);
+            cmp = compareElements(e, t.element);
             if (cmp < 0) {
                 t = t.left;
             } else if (cmp > 0) {
@@ -307,13 +311,14 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      * @return the element previously at the specified position
      * @throws IndexOutOfBoundsException if {@code index < 0 || index >= size()}
      */
-    @Override
+    //@ also
     //@ requires 0 <= index && index < size();
     //@ ensures size() == \old(size()) - 1;
     //@ ensures \result.equals(\old(get(index)));
     //@ ensures !contains(\result);
     //@ ensures (\forall int i; 0 <= i && i < size() - 1;
     //@     compare(get(i), get(i + 1)) < 0);
+    @Override
     public E remove(int index) {
         checkIndex(index);
         Node<E> node = findByIndex(index);
@@ -329,11 +334,12 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      * @param o the element to be removed
      * @return {@code true} if this list contained the specified element
      */
-    @Override
+    //@ also
     //@ ensures \result <==> \old(contains(o));
     //@ ensures !contains(o);
     //@ ensures  \old(contains(o)) ==> size() == \old(size()) - 1;
     //@ ensures !\old(contains(o)) ==> size() == \old(size());
+    @Override
     public boolean remove(Object o) {
         Node<E> node = findNode(o);
         if (node == null) {
@@ -351,10 +357,11 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      * @return {@code true} if this list changed as a result of the call
      * @throws NullPointerException if {@code c} is {@code null}
      */
-    @Override
+    //@ also
     //@ requires c != null;
     //@ ensures (\forall Object e; c.contains(e); !contains(e));
     //@ ensures \result <==> (\exists Object e; c.contains(e); \old(contains(e)));
+    @Override
     public boolean removeAll(Collection<?> c) {
         Objects.requireNonNull(c);
         boolean modified = false;
@@ -382,10 +389,11 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      * @return {@code true} if this list changed as a result of the call
      * @throws NullPointerException if {@code c} is {@code null}
      */
-    @Override
+    //@ also
     //@ requires c != null;
     //@ ensures (\forall int i; 0 <= i && i < size(); c.contains(get(i)));
     //@ ensures \result <==> (\exists Object e; \old(contains(e)); !c.contains(e));
+    @Override
     public boolean retainAll(Collection<?> c) {
         Objects.requireNonNull(c);
         boolean modified = false;
@@ -409,8 +417,9 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      * Removes all elements from this list. The list will be empty after this
      * call returns.
      */
-    @Override
+    //@ also
     //@ ensures size() == 0;
+    @Override
     public void clear() {
         modCount++;
         root = null;
@@ -450,8 +459,9 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      * @param o the element whose presence is to be tested
      * @return {@code true} if this list contains the element
      */
-    @Override
+    //@ also
     //@ ensures \result <==> (\exists int i; 0 <= i && i < size(); get(i).equals(o));
+    @Override
     public boolean contains(Object o) {
         return findNode(o) != null;
     }
@@ -464,10 +474,11 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      * @param o the element to search for
      * @return the index of the element, or {@code -1} if not present
      */
-    @Override
+    //@ also
     //@ ensures \result >= -1 && \result < size();
     //@ ensures \result == -1 <==> !contains(o);
     //@ ensures \result >= 0  ==> get(\result).equals(o);
+    @Override
     public int indexOf(Object o) {
         Node<E> node = findNode(o);
         return node == null ? -1 : rankOf(node);
@@ -480,8 +491,9 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      * @param o the element to search for
      * @return the index of the element, or {@code -1} if not present
      */
-    @Override
+    //@ also
     //@ ensures \result == indexOf(o);
+    @Override
     public int lastIndexOf(Object o) {
         return indexOf(o);
     }
@@ -514,8 +526,9 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
      * @return a list iterator over the elements in sorted order
      * @throws IndexOutOfBoundsException if {@code index < 0 || index > size()}
      */
-    @Override
+    //@ also
     //@ requires 0 <= index && index <= size();
+    @Override
     public ListIterator<E> listIterator(int index) {
         if (index < 0 || index > size) {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
@@ -532,7 +545,7 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
     }
 
     @SuppressWarnings("unchecked")
-    private int compare(Object a, Object b) {
+    private int compareElements(Object a, Object b) {
         if (comparator != null) {
             return comparator.compare((E) a, (E) b);
         }
@@ -543,7 +556,7 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
         Objects.requireNonNull(o);
         Node<E> n = root;
         while (n != null) {
-            int cmp = compare(o, n.element);
+            int cmp = compareElements(o, n.element);
             if (cmp < 0) {
                 n = n.left;
             } else if (cmp > 0) {
@@ -607,7 +620,7 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
         Node<E> n = root;
         Node<E> result = null;
         while (n != null) {
-            int cmp = compare(element, n.element);
+            int cmp = compareElements(element, n.element);
             if (cmp < 0) {
                 result = n;
                 n = n.left;

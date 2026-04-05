@@ -21,9 +21,11 @@ The development workflow follows a **design‑first, TDD‑driven approach**:
 7. Implementation
 8. White‑box tests
 9. Static analysis
-10. Test coverage review
-11. Documentation
-12. Session wrap‑up
+10. JML conformance check (JML → Code)
+11. JML completeness check (Code → JML)
+12. Test coverage review
+13. Documentation
+14. Session wrap‑up
 
 Each step has a specific purpose and should not be skipped.
 
@@ -45,9 +47,11 @@ below — do not default to the same model for every step.
 | 7 — Implementation | **Sonnet** | Code generation with fidelity to upstream decisions |
 | 8 — White-box tests | **Sonnet** | Knowledge of internals required |
 | 9 — Static analysis | **Sonnet** | Structured analysis against known criteria |
-| 10 — Test coverage review | **Sonnet** | Structured analysis against known criteria |
-| 11 — Documentation | **Sonnet** / **Haiku** | Sonnet if the API or architecture changed; Haiku for minor updates |
-| 12 — Session wrap-up | **Haiku** | Mechanical backlog and readme updates |
+| 10 — JML conformance check | **Sonnet** | Requires reading code against formal specs |
+| 11 — JML completeness check | **Sonnet** | Requires identifying missing formal specs |
+| 12 — Test coverage review | **Sonnet** | Structured analysis against known criteria |
+| 13 — Documentation | **Sonnet** / **Haiku** | Sonnet if the API or architecture changed; Haiku for minor updates |
+| 14 — Session wrap-up | **Haiku** | Mechanical backlog and readme updates |
 
 ---
 
@@ -266,7 +270,42 @@ re‑run the full test suite before resuming at step 9.
 
 ---
 
-## 10. Test coverage review
+## 10. JML conformance check (JML → Code)
+
+Run the `jml-conformance-check` skill.
+
+Verify that the implementation respects its JML specifications:
+
+- class invariants are established by constructors and preserved by all
+  mutation methods
+- pre‑conditions are validated or documented as caller responsibility
+- post‑conditions are satisfied on all return paths
+- purity annotations are correct
+- overriding methods use the `also` keyword
+
+If a violation is found, return to step 7, fix the code, and re‑run the
+full test suite before resuming.
+
+---
+
+## 11. JML completeness check (Code → JML)
+
+Run the `jml-completeness-check` skill.
+
+Verify that the JML specifications are complete and up to date:
+
+- every public method has JML contracts
+- all invariants from `INVARIANTS.md` are annotated in the code
+- no implicit invariant is left unformalized
+- synchronized variants have the same contracts as their unsynchronized
+  counterparts
+
+If gaps are found, add the missing annotations, then re‑run step 10 to
+verify the new annotations are correct.
+
+---
+
+## 12. Test coverage review
 
 Run the `test-coverage-review` skill.
 
@@ -282,7 +321,7 @@ to step 8 and add them, then re‑run the full test suite.
 
 ---
 
-## 11. Documentation
+## 13. Documentation
 
 Update project documentation when public behaviour changes.
 
@@ -304,7 +343,7 @@ Ensure examples compile against the real API.
 
 ---
 
-## 12. Session wrap‑up
+## 14. Session wrap‑up
 
 At the end of a session, run:
 

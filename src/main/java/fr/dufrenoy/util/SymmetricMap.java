@@ -66,7 +66,7 @@ public interface SymmetricMap<K, V> extends Map<K, V> {
      * @return an {@code Optional} containing the key associated with {@code value},
      *         or empty if not found
      */
-    Optional<K> getKey(Object value);
+    /*@ pure @*/ Optional<K> getKey(Object value);
 
     // ─── Symmetric insertion ──────────────────────────────────────────────────
 

@@ -215,11 +215,14 @@
                     <argument>-sourcepath</argument>
                     <argument>${project.basedir}/src/main/java</argument>
                     <argument>${project.basedir}/src/main/java/fr/dufrenoy/util/UnsynchronizedSymmetricMap.java</argument>
+                    <argument>${project.basedir}/src/main/java/fr/dufrenoy/util/UnsynchronizedChunkyList.java</argument>
+                    <argument>${project.basedir}/src/main/java/fr/dufrenoy/util/UnsynchronizedTreeList.java</argument>
                   </arguments>
                   <successCodes>
                     <successCode>0</successCode>
                     <successCode>1</successCode>
                     <successCode>2</successCode>
+                    <successCode>4</successCode> <!-- OpenJML internal error — upstream bug -->
                   </successCodes>
                 </configuration>
               </execution>
@@ -252,12 +255,13 @@
                   <arguments>
                     <argument>bash</argument>
                     <argument>-lc</argument>
-                    <argument>${openjml.home}/openjml --esc --progress -sourcepath "$(wslpath -u '${project.basedir}')/src/main/java" "$(wslpath -u '${project.basedir}')/src/main/java/fr/dufrenoy/util/UnsynchronizedSymmetricMap.java"</argument>
+                    <argument>${openjml.home}/openjml --esc --progress -sourcepath "$(wslpath -u '${project.basedir}')/src/main/java" "$(wslpath -u '${project.basedir}')/src/main/java/fr/dufrenoy/util/UnsynchronizedSymmetricMap.java" "$(wslpath -u '${project.basedir}')/src/main/java/fr/dufrenoy/util/UnsynchronizedChunkyList.java" "$(wslpath -u '${project.basedir}')/src/main/java/fr/dufrenoy/util/UnsynchronizedTreeList.java"</argument>
                   </arguments>
                   <successCodes>
                     <successCode>0</successCode>
                     <successCode>1</successCode>
                     <successCode>2</successCode>
+                    <successCode>4</successCode> <!-- OpenJML internal error — upstream bug -->
                   </successCodes>
                 </configuration>
               </execution>

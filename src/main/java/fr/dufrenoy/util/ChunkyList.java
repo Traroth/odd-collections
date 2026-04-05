@@ -84,7 +84,7 @@ public interface ChunkyList<E> extends List<E> {
      *
      * @return the chunk size
      */
-    int getChunkSize();
+    /*@ pure @*/ int getChunkSize();
 
     /**
      * Returns the current growing strategy.
@@ -92,7 +92,7 @@ public interface ChunkyList<E> extends List<E> {
      * @return the current growing strategy
      * @see GrowingStrategy
      */
-    GrowingStrategy getCurrentGrowingStrategy();
+    /*@ pure @*/ GrowingStrategy getCurrentGrowingStrategy();
 
     /**
      * Sets the growing strategy. The new strategy applies immediately to all
@@ -109,7 +109,7 @@ public interface ChunkyList<E> extends List<E> {
      * @return the current shrinking strategy
      * @see ShrinkingStrategy
      */
-    ShrinkingStrategy getCurrentShrinkingStrategy();
+    /*@ pure @*/ ShrinkingStrategy getCurrentShrinkingStrategy();
 
     /**
      * Sets the shrinking strategy. The new strategy applies immediately to all

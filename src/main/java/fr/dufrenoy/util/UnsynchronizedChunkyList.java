@@ -42,14 +42,15 @@ import java.util.*;
  * guaranteed in a concurrent context without external synchronization.
  * @param <E> the type of elements in this list
  */
-/*@
-  @ public invariant size() >= 0;
-  @ public invariant (\forall int i; 0 <= i && i < size(); get(i) != null);
-  @ public invariant getChunkSize() >= 1;
-  @ public invariant getCurrentGrowingStrategy() != null;
-  @ public invariant getCurrentShrinkingStrategy() != null;
-  @*/
 public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements ChunkyList<E> {
+
+    /*@
+      @ public invariant size() >= 0;
+      @ public invariant (\forall int i; 0 <= i && i < size(); get(i) != null);
+      @ public invariant getChunkSize() >= 1;
+      @ public invariant getCurrentGrowingStrategy() != null;
+      @ public invariant getCurrentShrinkingStrategy() != null;
+      @*/
 
     // ─── Constants ────────────────────────────────────────────────────────────
 
@@ -206,18 +207,21 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
 
     // ─── Accessors ────────────────────────────────────────────────────────────
 
+    //@ also
     //@ ensures \result >= 1;
     @Override
-    public int getChunkSize() {
+    public /*@ pure @*/ int getChunkSize() {
         return chunkSize;
     }
 
+    //@ also
     //@ ensures \result != null;
     @Override
-    public GrowingStrategy getCurrentGrowingStrategy() {
+    public /*@ pure @*/ GrowingStrategy getCurrentGrowingStrategy() {
         return currentGrowingStrategy;
     }
 
+    //@ also
     //@ requires currentGrowingStrategy != null;
     //@ ensures getCurrentGrowingStrategy() == currentGrowingStrategy;
     @Override
@@ -225,12 +229,14 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
         this.currentGrowingStrategy = currentGrowingStrategy;
     }
 
+    //@ also
     //@ ensures \result != null;
     @Override
-    public ShrinkingStrategy getCurrentShrinkingStrategy() {
+    public /*@ pure @*/ ShrinkingStrategy getCurrentShrinkingStrategy() {
         return currentShrinkingStrategy;
     }
 
+    //@ also
     //@ requires currentShrinkingStrategy != null;
     //@ ensures getCurrentShrinkingStrategy() == currentShrinkingStrategy;
     @Override
@@ -238,6 +244,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
         this.currentShrinkingStrategy = currentShrinkingStrategy;
     }
 
+    //@ also
     //@ requires growingStrategy != null;
     //@ requires shrinkingStrategy != null;
     //@ ensures getCurrentGrowingStrategy() == growingStrategy;
@@ -250,24 +257,28 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
 
     // ─── Public methods (List contract) ───────────────────────────────────────
 
+    //@ also
     //@ ensures \result >= 0;
     @Override
     public int size() {
         return size;
     }
 
+    //@ also
     //@ ensures \result <==> size() == 0;
     @Override
     public boolean isEmpty() {
         return size == 0;
     }
 
+    //@ also
     //@ ensures \result <==> (\exists int i; 0 <= i && i < size(); get(i).equals(o));
     @Override
     public boolean contains(Object o) {
         return indexOf(o) != -1;
     }
 
+    //@ also
     //@ ensures \result >= -1 && \result < size();
     //@ ensures \result == -1 <==> !contains(o);
     //@ ensures \result >= 0 ==> get(\result).equals(o);
@@ -288,6 +299,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
         return -1;
     }
 
+    //@ also
     //@ ensures \result >= -1 && \result < size();
     //@ ensures \result == -1 <==> !contains(o);
     //@ ensures \result >= 0 ==> get(\result).equals(o);
@@ -308,6 +320,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
         return -1;
     }
 
+    //@ also
     //@ requires 0 <= index && index < size();
     //@ ensures \result != null;
     @Override
@@ -327,6 +340,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
         return current.elements[remaining];
     }
 
+    //@ also
     //@ requires element != null;
     //@ requires 0 <= index && index < size();
     //@ ensures \result != null;
@@ -354,6 +368,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
         return old;
     }
 
+    //@ also
     //@ requires e != null;
     //@ ensures \result == true;
     //@ ensures size() == \old(size()) + 1;
@@ -384,6 +399,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
      * @return {@code true} if the list was modified
      * @throws IllegalArgumentException if any element in {@code c} is {@code null}
      */
+    //@ also
     //@ requires c != null;
     //@ requires (\forall Object e; c.contains(e); e != null);
     //@ ensures \result <==> c.size() > 0;
@@ -427,6 +443,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
         return true;
     }
 
+    //@ also
     //@ requires element != null;
     //@ requires 0 <= index && index <= size();
     //@ ensures size() == \old(size()) + 1;
@@ -481,6 +498,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
         modCount++;
     }
 
+    //@ also
     //@ ensures \result <==> \old(contains(o));
     //@ ensures !contains(o);
     //@ ensures  \old(contains(o)) ==> size() == \old(size()) - 1;
@@ -501,6 +519,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
         return false;
     }
 
+    //@ also
     //@ requires 0 <= index && index < size();
     //@ ensures size() == \old(size()) - 1;
     //@ ensures \result != null;
@@ -533,6 +552,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
      *
      * <p>This is useful after many removals have left chunks sparsely filled.
      */
+    //@ also
     //@ ensures size() == \old(size());
     //@ ensures (\forall int i; 0 <= i && i < size(); get(i).equals(\old(get(i))));
     @Override
@@ -564,6 +584,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
         modCount++;
     }
 
+    //@ also
     //@ ensures size() == 0;
     @Override
     public void clear() {

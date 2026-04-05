@@ -160,6 +160,10 @@ This allows automated verification using JML tools.
 
 ## SymmetricMap
 
+> **Note:** JML annotations on `SymmetricMap` were added retroactively,
+> after the implementation was complete. The invariants below were derived
+> from the existing code and tests, not used to drive the design.
+
 ### Null keys and values
 
 `SymmetricMap` explicitly allows `null` as both a key and a value.
@@ -221,6 +225,10 @@ key chains:
 
 ## ChunkyList
 
+> **Note:** JML annotations on `ChunkyList` were added retroactively,
+> after the implementation was complete. The invariants below were derived
+> from the existing code and tests, not used to drive the design.
+
 ### Null elements
 
 `ChunkyList` does **not** allow null elements (contrary to the general
@@ -274,6 +282,10 @@ Unused array slots are null (cleared on removal):
 ------------------------------------------------------------------------
 
 ## TreeList
+
+> **Note:** `TreeList` is the first structure in this project developed
+> **JML-first**: invariants and method contracts were written before
+> implementation and used to drive the design, tests, and verification.
 
 ### Null elements
 

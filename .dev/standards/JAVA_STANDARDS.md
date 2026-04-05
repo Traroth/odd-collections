@@ -291,3 +291,55 @@ For generic or unknown exception types, `e` is acceptable.
 
 This convention makes the exception type immediately visible at the catch site
 without reading the full type declaration.
+
+---
+
+## 9. JML annotations
+
+### Placement relative to Java annotations
+
+JML specification comments (`//@ requires`, `//@ ensures`, `//@ also`, etc.)
+must be placed **after** the Javadoc block and **before** any Java annotations
+(`@Override`, `@SuppressWarnings`, etc.).
+
+Correct:
+
+```java
+/**
+ * Adds the specified element to this collection.
+ *
+ * @param e element to add
+ * @return {@code true} if the collection changed
+ */
+//@ requires e != null;
+//@ ensures contains(e);
+@Override
+public boolean add(E e) {
+```
+
+Incorrect (OpenJML will reject this with "method specification incorrectly
+follows non-JML modifiers"):
+
+```java
+/**
+ * Adds the specified element to this collection.
+ */
+@Override
+//@ requires e != null;
+//@ ensures contains(e);
+public boolean add(E e) {
+```
+
+### `also` keyword on overriding methods
+
+When a method overrides a parent method (from a superclass or interface), its
+JML specification must begin with `//@ also` to indicate that the contract
+extends the parent contract. This applies to all `@Override` methods.
+
+```java
+//@ also
+//@ requires e != null;
+//@ ensures contains(e);
+@Override
+public boolean add(E e) {
+```

@@ -84,5 +84,5 @@ public interface TreeList<E> extends List<E> {
      * @return the comparator used to order this list, or an empty
      *         {@code Optional} if natural ordering is used
      */
-    Optional<Comparator<? super E>> comparator();
+    /*@ pure @*/ Optional<Comparator<? super E>> comparator();
 }

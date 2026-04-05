@@ -33,11 +33,15 @@ of each session.
 
 ## JML / Formal verification
 
-- [ ] Fix 4 OpenJML errors: `strictly_pure` methods may not call `spec_pure`
-  methods — `size()` in `KeySetView`, `ValueSetView`, `EntrySetView`
-- [ ] Complete `INVARIANTS.md` with concrete invariants derived from JML
-  annotations
-- [ ] Explore KeY integration for formal program verification
+- [ ] Fix 2 remaining OpenJML warnings: `Optional.isEmpty()` not recognized
+  as `pure` by OpenJML 21-0.23 (limitation: no JDK spec for `isEmpty()`,
+  added in Java 11)
+- [ ] OpenJML 21-0.23 crashes with internal error (exit code 4) due to
+  `module-info.java` — upstream bug (issue filed), exit code 4 accepted
+  in Maven profiles as workaround
+- [ ] Add OpenJML RAC profile — blocked by the module-info.java crash
+  (RAC produces no output, unlike ESC which completes analysis before
+  crashing). Revisit when upstream fix is available
 
 ---
 
@@ -83,6 +87,20 @@ Each item should be benchmarked before and after to confirm impact.
 
 ### JML / Formal verification
 
+- [x] Fix OpenJML `strictly_pure` / `spec_pure` error — annotated
+  `UnsynchronizedSymmetricMap.size()` as `strictly_pure`
+- [x] Move JML `/*@ invariant @*/` blocks inside class bodies (all 6 classes)
+  — OpenJML 21 does not support invariant blocks between Javadoc and class
+  declaration
+- [x] Complete `INVARIANTS.md` with concrete invariants derived from JML
+  annotations (SymmetricMap, ChunkyList, TreeList)
+- [x] Add `also` keyword to all JML specs on overriding methods in
+  `UnsynchronizedSymmetricMap`
+- [x] Annotate `getKey()` as `pure` in `SymmetricMap` interface and
+  `UnsynchronizedSymmetricMap`
+- [x] Make OpenJML profile portable: `openjml-unix` (Linux, macOS) and
+  `openjml-windows` (Windows via WSL), configured via `openjml.home` in
+  `~/.m2/settings.xml`
 - [x] Add JML `@invariant` annotations and `@requires` / `@ensures` contracts
   to `UnsynchronizedChunkyList` and `SynchronizedChunkyList`
 - [x] Add JML `@invariant` annotations and `@requires` / `@ensures` contracts
@@ -92,6 +110,19 @@ Each item should be benchmarked before and after to confirm impact.
 - [x] Create `jml-design` skill — write JML contracts during design phase
 - [x] Create `jml-test-generation` skill — generate tests from JML contracts
   (Claude-driven, no JMLUnit dependency — JMLUnit is dormant since ~2014)
+- [x] Extend OpenJML ESC profiles to all 3 classes (`UnsynchronizedSymmetricMap`,
+  `UnsynchronizedChunkyList`, `UnsynchronizedTreeList`)
+- [x] Fix JML annotation placement in `UnsynchronizedTreeList` — specs must
+  precede Java annotations (`@Override`), not follow them
+- [x] Add `also` keyword to all overriding methods in `UnsynchronizedChunkyList`
+  and `UnsynchronizedTreeList`
+- [x] Add `pure` annotations to getters in `ChunkyList` and `TreeList`
+  interfaces, and `UnsynchronizedChunkyList` implementation
+- [x] Fix erasure clash in `UnsynchronizedTreeList` — renamed private
+  `compare(Object, Object)` to `compareElements` to avoid conflict with
+  JML model method `compare(E, E)`
+- [x] Accept OpenJML exit code 4 in Maven profiles (upstream module-info bug)
+- [x] Add JML annotation placement rules to `JAVA_STANDARDS.md` (section 9)
 
 ### Project-wide
 
@@ -197,3 +228,11 @@ Items that were explored and deliberately discarded.
   since ~2014, do not support Java 8+. No actively maintained alternative
   exists. Replaced by the `jml-test-generation` skill (Claude-driven test
   derivation from JML specs, optionally complemented by OpenJML RAC).
+- **JJBMC for bounded model checking** — JJBMC bundles an old OpenJML and
+  requires Java 8 exclusively. Not compatible with our Java 11 baseline.
+  Academic single-author project with sporadic maintenance (~5 commits/year).
+  Revisit if Java 11+ support is added.
+- **KeY for interactive theorem proving** — powerful but fundamentally
+  interactive (no CI integration). Limited Java subset (no lambdas).
+  Steep learning curve for limited project scope. Revisit if a specific
+  invariant proves impossible to verify with OpenJML ESC.

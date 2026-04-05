@@ -58,14 +58,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @see TreeList
  * @see UnsynchronizedTreeList
  */
-/*@
-  @ public invariant (\forall int i; 0 <= i && i < size() - 1;
-  @     compare(get(i), get(i + 1)) < 0);
-  @ public invariant size() >= 0;
-  @ public invariant (\forall int i; 0 <= i && i < size(); get(i) != null);
-  @ model public pure helper int compare(E a, E b);
-  @*/
 public class SynchronizedTreeList<E> implements TreeList<E> {
+
+    /*@
+      @ public invariant (\forall int i; 0 <= i && i < size() - 1;
+      @     compare(get(i), get(i + 1)) < 0);
+      @ public invariant size() >= 0;
+      @ public invariant (\forall int i; 0 <= i && i < size(); get(i) != null);
+      @ model public pure helper int compare(E a, E b);
+      @*/
 
     // ─── Instance variables ───────────────────────────────────────────────────────
 

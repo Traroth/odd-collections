@@ -54,14 +54,15 @@ import java.util.function.BiFunction;
  * @param <K> the type of keys
  * @param <V> the type of values
  */
-/*@
-  @ public invariant size() >= 0;
-  @ public invariant (\forall K k; containsKey(k);
-  @     getKey(get(k)).isPresent() && Objects.equals(getKey(get(k)).get(), k));
-  @ public invariant (\forall V v; containsValue(v);
-  @     Objects.equals(get(getKey(v).get()), v));
-  @*/
 public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
+
+    /*@
+      @ public invariant size() >= 0;
+      @ public invariant (\forall K k; containsKey(k);
+      @     getKey(get(k)).isPresent() && Objects.equals(getKey(get(k)).get(), k));
+      @ public invariant (\forall V v; containsValue(v);
+      @     Objects.equals(get(getKey(v).get()), v));
+      @*/
 
     // ─── Instance fields ──────────────────────────────────────────────────────
 
