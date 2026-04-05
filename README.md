@@ -307,12 +307,100 @@ TreeList<Integer> list = new SynchronizedTreeList<>();
 
 ---
 
+### MultiMap
+
+A **recursive multi-dimensional map**. Each `MultiMap<K, V>` associates keys of type `K` to values of type `V`, where `V` may itself be another `MultiMap`, enabling multi-level key hierarchies with heterogeneous key types per dimension.
+
+#### How it works
+
+A partial lookup (stopping before the deepest level) returns a sub-map of reduced dimensionality. A complete lookup returns the terminal value.
+
+```
+MultiMap<Country, MultiMap<City, MultiMap<Quarter, Integer>>>
+
+  "France" ──▶ { "Paris" ──▶ { "Q1" ──▶ 42, "Q2" ──▶ 73 },
+                 "Lyon"  ──▶ { "Q1" ──▶ 10 } }
+```
+
+The structure is backed by a `HashMap` at each level — no custom hash table is needed since there are no special structural constraints (unlike `SymmetricMap`'s dual hash chains).
+
+#### Architecture
+
+| Type | Role |
+|---|---|
+| `MultiMap<K, V>` | Interface — custom (does not extend `java.util.Map`), but mirrors the `Map` API where applicable |
+| `UnsynchronizedMultiMap<K, V>` | Standard implementation — not thread-safe, fail-fast iterators |
+| `SynchronizedMultiMap<K, V>` | Thread-safe implementation backed by a `ReentrantReadWriteLock` |
+
+#### Features
+
+- **Chained writes** via `getOrCreate(K, Supplier<V>)` — creates intermediate levels on the fly
+- **Chained reads** via `get(K)` — returns `null` if the key is absent, enabling concise multi-level lookups
+- **Safe reads** via `getOpt(K)` — returns `Optional<V>` for explicit absent-key handling with `flatMap`
+- `put`, `remove`, `containsKey`, `size`, `isEmpty`, `clear`
+- View methods: `keySet()`, `values()`, `entrySet()` (using `Map.Entry`)
+- Null keys and null values are forbidden (`NullPointerException`)
+- Fail-fast iterators (`UnsynchronizedMultiMap`) and snapshot-based iterators (`SynchronizedMultiMap`)
+- Copy constructors from `Map` and `MultiMap`
+
+#### Nullable `get` — exception to the project Optional convention
+
+The project convention (`JAVA_STANDARDS.md` §5) prescribes `Optional<T>` for any return value that may be absent. `MultiMap` deliberately deviates from this for `get(K)`, `put(K, V)`, and `remove(K)`. The reason: chained multi-level lookups would be impractical with `Optional` at every level.
+
+```java
+// Nullable get — concise chaining for the common case
+map.get("France").get("Paris").get("Q1")
+
+// Optional getOpt — safe alternative when keys may be absent
+map.getOpt("France")
+   .flatMap(m -> m.getOpt("Paris"))
+   .flatMap(m -> m.getOpt("Q1"))
+```
+
+#### Usage
+
+```java
+// Chained write — creates intermediate levels automatically
+MultiMap<String, MultiMap<String, MultiMap<String, Integer>>> map =
+    new UnsynchronizedMultiMap<>();
+map.getOrCreate("France", UnsynchronizedMultiMap::new)
+   .getOrCreate("Paris", UnsynchronizedMultiMap::new)
+   .put("Q1", 42);
+
+// Chained read
+Integer val = map.get("France").get("Paris").get("Q1"); // 42
+
+// Safe read
+Optional<Integer> safe = map.getOpt("France")
+    .flatMap(m -> m.getOpt("Paris"))
+    .flatMap(m -> m.getOpt("Q1"));
+
+// Partial lookup — returns a sub-map
+MultiMap<String, MultiMap<String, Integer>> france = map.get("France");
+
+// Thread-safe
+MultiMap<String, MultiMap<String, Integer>> map = new SynchronizedMultiMap<>();
+```
+
+#### Thread safety
+
+`UnsynchronizedMultiMap` is **not thread-safe**. For concurrent access, use `SynchronizedMultiMap`, which is backed by a `ReentrantReadWriteLock`: multiple threads may read concurrently, while writes are exclusive.
+
+Iterators on `keySet()`, `values()`, and `entrySet()` in `SynchronizedMultiMap` operate on a **snapshot** of the map taken at the time of the call.
+
+> **Atomicity note:** each operation is atomic at the current level only. In a recursive multi-level structure, operations on sub-maps are independent — there is no cross-level locking. Callers requiring atomicity across multiple levels must provide their own synchronization.
+
+#### Development note
+
+`MultiMap` is the second structure in this project developed **JML-first**: class invariants and method contracts were written before implementation.
+
+---
+
 ## Roadmap
 
 - **`Tuple`** — a type-safe immutable tuple system without one class per arity, with Java 21 record-based implementation via multi-release JAR
 - **`CircularBuffer`** — a circular doubly-linked list backed by a ring of nodes
 - **`SortedChunkyList`** — a `ChunkyList` that maintains elements in sorted order using a `Comparator`, with O(log n) insertion via binary search across chunks
-- **`MultiMap`** — a multidimensional map with a configurable number of dimensions, supporting partial key lookups that return sub-maps
 
 ---
 

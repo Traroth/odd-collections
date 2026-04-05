@@ -217,6 +217,9 @@ Each item should be benchmarked before and after to confirm impact.
   benchmark conclusions and performance profile
 - [x] Transition to Claude Code (JetBrains plugin) as primary coding agent
 - [x] `TreeList`
+- [x] `MultiMap` — recursive multi-dimensional map with `UnsynchronizedMultiMap`,
+  `SynchronizedMultiMap`, interface contract tests, black-box tests, white-box
+  tests, JML contracts, ARCHITECTURE.md, INVARIANTS.md, README.md
 
 ---
 

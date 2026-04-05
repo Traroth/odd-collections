@@ -345,6 +345,59 @@ This invariant must be restored after every rotation and structural change:
 
 ------------------------------------------------------------------------
 
+## MultiMap
+
+> **Note:** `MultiMap` is developed **JML-first**: invariants and method
+> contracts are written before implementation and used to drive the design,
+> tests, and verification.
+
+### Null handling
+
+`MultiMap` forbids null keys and null values. Mutation and lookup methods
+throw `NullPointerException` if any argument is null. This departs from
+`SymmetricMap`, which permits null keys and values.
+
+    //@ invariant (\forall K k; containsKey(k); get(k) != null);
+
+### Nullable return values — exception to the Optional convention
+
+`get(K)`, `put(K, V)`, and `remove(K)` return nullable `V`. This is a
+deliberate exception to the project convention (`JAVA_STANDARDS.md` §5)
+that prescribes `Optional<T>` for absent return values. The reason is
+ergonomic chaining across multiple levels:
+`map.get("a").get("b").get("c")`. `getOpt(K)` is provided as the safe
+`Optional`-based alternative.
+
+### Size consistency
+
+`size()` returns the number of entries at the current level only — it
+does not recurse into sub-maps.
+
+    //@ invariant size() >= 0;
+    //@ invariant size() == 0 <==> isEmpty();
+
+### Lookup consistency
+
+`get`, `getOpt`, and `containsKey` are mutually consistent:
+
+    //@ invariant (\forall K k; containsKey(k); get(k) != null);
+    //@ invariant (\forall K k; containsKey(k); getOpt(k).isPresent());
+    //@ invariant (\forall K k; !containsKey(k); get(k) == null);
+    //@ invariant (\forall K k; !containsKey(k); !getOpt(k).isPresent());
+
+### View consistency
+
+    //@ invariant keySet().size() == size();
+    //@ invariant values().size() == size();
+    //@ invariant entrySet().size() == size();
+
+### Delegation integrity (`UnsynchronizedMultiMap`)
+
+    //@ invariant map != null;
+    //@ invariant size() == map.size();
+
+------------------------------------------------------------------------
+
 # When adding a new structure
 
 Whenever a new class is introduced:

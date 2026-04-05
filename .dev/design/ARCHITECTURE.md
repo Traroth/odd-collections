@@ -515,3 +515,120 @@ increasing memory overhead proportionally to the number of entries. Since
 delegating it to the `EntrySetView` iterator is both more memory-efficient and
 more consistent with the JDK's own `HashMap` design, where `Node` does not
 reference its map.
+
+---
+
+## MultiMap
+
+### Custom interface rather than extending `java.util.Map`
+
+`MultiMap<K, V>` is defined as a standalone interface, not an extension of
+`java.util.Map<K, V>`. The API intentionally mirrors `Map` where applicable
+(method names, signatures, use of `Map.Entry`).
+
+**Alternative considered:** extending `Map<K, V>` and adding the recursive
+methods (`getOrCreate`, `getOpt`).
+
+**Reason for rejection:** the `Map` contract is incompatible with the recursive
+semantics. `getOrCreate` has no equivalent in `Map`. Partial lookups (returning
+a sub-map of reduced dimensionality) are not part of the `Map` contract. Methods
+like `containsValue` have no clear semantics in a recursive context — should they
+search the current level only, or recursively? Inheriting `Map` would force
+answers to these questions that are better left out of scope.
+
+---
+
+### Recursive generic typing rather than arity-specific classes
+
+The multi-dimensional structure is expressed via recursive generics:
+`MultiMap<K, V>` where `V` may itself be another `MultiMap`. A three-level
+map is typed as `MultiMap<K1, MultiMap<K2, MultiMap<K3, V>>>`.
+
+**Alternative considered:** dedicated classes per arity —
+`MultiMap2<K1, K2, V>`, `MultiMap3<K1, K2, K3, V>`, etc.
+
+**Reason for rejection:** combinatorial explosion (one class per arity),
+incompatible with dynamic depth. The recursive approach naturally handles
+variable depth, heterogeneous key types per level, and partial lookups that
+return a sub-map of reduced dimensionality.
+
+---
+
+### Delegation to `HashMap` rather than a custom hash table
+
+`UnsynchronizedMultiMap` is backed by a `HashMap<K, V>`. All storage,
+hashing, and resizing are delegated to the standard `HashMap`.
+
+**Alternative considered:** a custom hash table, as `UnsynchronizedSymmetricMap`
+uses.
+
+**Reason for rejection:** `MultiMap` has no structural constraint that requires
+a custom table (no bijectivity, no dual hash chains). `HashMap` provides the
+necessary performance characteristics without additional complexity. The
+delegation pattern keeps the implementation simple and benefits from ongoing
+JDK optimizations.
+
+---
+
+### `get(K)` returns nullable — deliberate exception to the project Optional convention
+
+`get(K)` returns `V` (nullable), while `getOpt(K)` returns `Optional<V>`.
+`put(K, V)` and `remove(K)` also return the previous value as nullable `V`.
+
+The project convention (`JAVA_STANDARDS.md` §5) prescribes `Optional<T>` for
+any return value that may be absent. `MultiMap` deliberately deviates from this
+convention for `get(K)`, `put(K, V)`, and `remove(K)`.
+
+**Reason:** the primary use case for `MultiMap` is chained multi-level lookups:
+`map.get("a").get("b").get("c")`. Using `Optional` exclusively would require
+`flatMap` at every level, making the common case verbose:
+
+```java
+// With Optional only — verbose for the common case
+map.getOpt("a").flatMap(m -> m.getOpt("b")).flatMap(m -> m.getOpt("c"))
+
+// With nullable get — concise chaining
+map.get("a").get("b").get("c")
+```
+
+`getOpt(K)` is provided as the safe alternative for cases where a key may be
+absent and the caller wants to handle it explicitly. This dual API mirrors the
+JDK's own `Map.get()` / `Optional` philosophy.
+
+---
+
+### Per-level atomicity in `SynchronizedMultiMap`
+
+Each operation in `SynchronizedMultiMap` is atomic at the current level only,
+not across the full depth of a recursive chain.
+
+**Alternative considered:** hierarchical locking — acquiring locks across
+multiple levels for a single chained operation.
+
+**Reason for rejection:** impractical with the recursive typing model. Each
+level is an independent `MultiMap` instance with its own lock. Multi-level
+locking would require an external coordinator, which is outside the scope of
+the collection itself. This limitation is documented explicitly in the Javadoc.
+Callers requiring cross-level atomicity must provide their own synchronization.
+
+---
+
+### Interface + two implementations rather than a single class
+
+`MultiMap<K, V>` is defined as an interface, with two concrete implementations:
+`UnsynchronizedMultiMap` and `SynchronizedMultiMap`.
+
+**Design rationale:** same as `ChunkyList`, `TreeList`, and `SymmetricMap` —
+the thread-safety contract is explicit in the type system.
+
+---
+
+### `ReentrantReadWriteLock` and snapshot-based iterators in `SynchronizedMultiMap`
+
+`SynchronizedMultiMap` uses a `ReentrantReadWriteLock` to protect all operations
+and returns snapshot-based iterators for `keySet()`, `values()`, and
+`entrySet()`.
+
+**Design rationale:** same pattern as the other synchronized collections in the
+project. Multiple concurrent readers are allowed; writes are exclusive. Snapshot
+iterators avoid holding a read lock for the duration of an iteration.
