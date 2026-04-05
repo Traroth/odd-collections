@@ -10,7 +10,6 @@ of each session.
 - [ ] Copy constructors between `UnsynchronizedChunkyList` and
   `SynchronizedChunkyList` — on hold
 - [ ] `SortedChunkyList`
-- [ ] `MultiMap`
 - [ ] `Tuple` — a type-safe immutable tuple system without one class per arity
 - [ ] `CircularBuffer` — a circular doubly-linked list backed by a ring of nodes
 - [ ] Implement `Serializable` on all data structures
@@ -44,11 +43,6 @@ of each session.
   crashing). Revisit when upstream fix is available
 
 ---
-
-## SymmetricMap
-
-- [ ] Change `getKey()` and `removeByValue()` return types to `Optional`
-  (per null handling rules in `JAVA_STANDARDS.md`)
 
 ---
 
@@ -220,6 +214,11 @@ Each item should be benchmarked before and after to confirm impact.
 - [x] `MultiMap` — recursive multi-dimensional map with `UnsynchronizedMultiMap`,
   `SynchronizedMultiMap`, interface contract tests, black-box tests, white-box
   tests, JML contracts, ARCHITECTURE.md, INVARIANTS.md, README.md
+
+### SymmetricMap
+
+- [x] Change `getKey()` and `removeByValue()` return types to `Optional`
+  (per null handling rules in `JAVA_STANDARDS.md`)
 
 ---
 

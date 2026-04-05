@@ -56,6 +56,27 @@ licensed under the GNU Lesser General Public License v3.
   `System.arraycopy`, and a `reorganize()` operation to compact sparsely
   filled chunks.
 
+- `fr.dufrenoy.util.TreeList<E>` — a sorted list backed by a red-black tree,
+  containing no duplicate elements. Elements are ordered by a `Comparator`
+  or their natural ordering. Position-dependent write operations (`add(int, E)`,
+  `set`, `subList`, etc.) are unsupported since insertion order is determined
+  by sort order. Null elements are forbidden; duplicates are silently rejected.
+  Two implementations are provided:
+  - `UnsynchronizedTreeList` — not thread-safe.
+  - `SynchronizedTreeList` — thread-safe, protected by a
+    `ReentrantReadWriteLock`.
+
+- `fr.dufrenoy.util.MultiMap<K, V>` — a recursive multi-dimensional map
+  interface. Each level associates keys of type `K` to values of type `V`,
+  where `V` may itself be another `MultiMap`, enabling multi-level key
+  hierarchies with heterogeneous key types per dimension. Supports chained
+  lookups, `getOrCreate` for nested writes, and `getOpt` for safe reads via
+  `Optional`. Does not extend `java.util.Map` (recursive semantics are
+  incompatible with the full `Map` contract). Null keys and values are
+  forbidden. Two implementations are provided:
+  - `UnsynchronizedMultiMap` — not thread-safe, fail-fast iterators.
+  - `SynchronizedMultiMap` — thread-safe, snapshot-based iterators.
+
 ### Repository structure
 ```
 src/
