@@ -450,9 +450,11 @@ The approach used here rests on four layers of rigour:
 
 2. **JML contracts as a specification layer** — class invariants and
    method pre/post-conditions are expressed in JML (`@invariant`, `@requires`,
-   `@ensures`) directly in the source. Starting from `TreeList`, these are
-   written *before* the implementation, making the contract machine-verifiable
-   and leaving no room for implicit assumptions to slip through.
+   `@ensures`) directly in the source. For newer classes (`TreeList`,
+   `MultiMap`), these are written *before* the implementation (JML-first),
+   making the contract machine-verifiable and leaving no room for implicit
+   assumptions to slip through. This is now the standard approach for all
+   new classes.
 
 3. **Three-level testing** — interface contract tests (`FooTest`), black-box
    tests (`FooBlackBoxTest`), and white-box tests (`FooWhiteBoxTest`) are kept
@@ -475,7 +477,11 @@ universal standards or conventions:
 - **`Optional<T>` as return type** — used more broadly than the Java
   community consensus, which often restricts it to stream operations.
   Here it is the default for any method whose result may be absent,
-  except where an interface contract forbids it.
+  except where an interface contract forbids it. `MultiMap` is a
+  deliberate exception: `get(K)` returns nullable `V` to enable concise
+  multi-level chaining (`map.get("a").get("b")`), with `getOpt(K)` as
+  the safe `Optional`-based alternative. See `ARCHITECTURE.md` for the
+  rationale.
 - **Three test classes per tested class** (`FooTest` / `BlackBoxTest` /
   `WhiteBoxTest`) — a stricter separation than most projects use, chosen
   to keep interface contract tests, implementation contract tests, and
@@ -483,9 +489,9 @@ universal standards or conventions:
 - **`inverse()` returns a copy, not a live view** — unlike Guava's `BiMap`,
   by design. See `.dev/design/ARCHITECTURE.md` for the rationale.
 - **Skills as Markdown files in `.dev/skills/`** — Claude reads these files
-  on demand to follow consistent workflows. This is not a standard Claude
-  convention; it is a lightweight adaptation of the Claude Code skill system
-  to work within a Claude.ai Project.
+  on demand to follow consistent workflows. Each skill encodes a recurring
+  task (static analysis, JML design, test generation, etc.) as a structured
+  checklist that Claude executes step by step.
 
 ### The `.dev/` directory
 
@@ -505,12 +511,17 @@ relevant skill before starting the corresponding task.
 
 | Skill | File | When it runs |
 |-------|------|-------------|
-| Static analysis | `.dev/skills/static-analysis/SKILL.md` | After every class generation or significant modification |
 | New class | `.dev/skills/new-class/SKILL.md` | When scaffolding a new data structure |
+| Refactor class | `.dev/skills/refactor-class/SKILL.md` | When refactoring an existing class without changing behaviour |
 | Design review | `.dev/skills/design-review/SKILL.md` | Before implementing a new class or data structure |
+| Static analysis | `.dev/skills/static-analysis/SKILL.md` | After every class generation or significant modification |
 | Test coverage review | `.dev/skills/test-coverage-review/SKILL.md` | After writing tests or when coverage seems insufficient |
 | API consistency check | `.dev/skills/api-consistency-check/SKILL.md` | After adding public methods or before a release |
 | Architecture drift check | `.dev/skills/architecture-drift-check/SKILL.md` | After significant refactoring or before a release |
+| JML design | `.dev/skills/jml-design/SKILL.md` | During step 2 of the workflow — write JML specs (invariants, requires, ensures) before implementation |
+| JML test generation | `.dev/skills/jml-test-generation/SKILL.md` | After JML contracts are written — derive test cases from specifications |
+| JML conformance check | `.dev/skills/jml-conformance-check/SKILL.md` | Verify implementation conforms to JML specs (direction: JML → code) |
+| JML completeness check | `.dev/skills/jml-completeness-check/SKILL.md` | Verify JML specs are complete w.r.t. implementation (direction: code → JML) |
 | Update backlog | `.dev/skills/update-backlog/SKILL.md` | At the end of every session |
 | Update README | `.dev/skills/update-readme/SKILL.md` | When the public API or roadmap changes, and at end of session |
 
