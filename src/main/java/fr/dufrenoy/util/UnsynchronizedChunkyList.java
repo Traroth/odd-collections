@@ -75,8 +75,8 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
 
     private int size;
     private final int chunkSize;
-    private Chunk firstChunk;
-    private Chunk lastChunk;
+    private Chunk<E> firstChunk;
+    private Chunk<E> lastChunk;
     private GrowingStrategy currentGrowingStrategy;
     private ShrinkingStrategy currentShrinkingStrategy;
 
@@ -133,9 +133,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
         this.currentShrinkingStrategy = other.currentShrinkingStrategy;
         @SuppressWarnings("unchecked")
         UnsynchronizedChunkyList<E> src = (UnsynchronizedChunkyList<E>) other;
-        Chunk current = src.firstChunk;
+        Chunk<E> current = src.firstChunk;
         while (current != null) {
-            Chunk newChunk = current.copy();
+            Chunk<E> newChunk = current.copy();
             if (firstChunk == null) {
                 firstChunk = newChunk;
             } else {
@@ -170,10 +170,10 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
         this.currentShrinkingStrategy = other.currentShrinkingStrategy;
         @SuppressWarnings("unchecked")
         UnsynchronizedChunkyList<E> src = (UnsynchronizedChunkyList<E>) other;
-        Chunk current = src.firstChunk;
+        Chunk<E> current = src.firstChunk;
         while (current != null) {
             if (current.nbElements <= chunkSize) {
-                Chunk newChunk = current.copy();
+                Chunk<E> newChunk = current.copy();
                 if (firstChunk == null) {
                     firstChunk = newChunk;
                 } else {
@@ -305,7 +305,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
             return -1;
         }
         int index = 0;
-        Chunk current = firstChunk;
+        Chunk<E> current = firstChunk;
         while (current != null) {
             for (int i = 0; i < current.nbElements; i++) {
                 if (o == null ? current.elements[i] == null : o.equals(current.elements[i])) {
@@ -328,7 +328,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
             return -1;
         }
         int index = size - 1;
-        Chunk current = lastChunk;
+        Chunk<E> current = lastChunk;
         while (current != null) {
             for (int i = current.nbElements - 1; i >= 0; i--) {
                 if (o == null ? current.elements[i] == null : o.equals(current.elements[i])) {
@@ -349,7 +349,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
         if (index < 0 || index >= size) {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
         }
-        Chunk current = firstChunk;
+        Chunk<E> current = firstChunk;
         int remaining = index;
         do {
             if (remaining < current.nbElements) {
@@ -375,7 +375,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
         if (index < 0 || index >= size) {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
         }
-        Chunk current = firstChunk;
+        Chunk<E> current = firstChunk;
         int remaining = index;
         do {
             if (remaining < current.nbElements) {
@@ -459,7 +459,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
         // Create new chunks for the remaining elements
         while (srcPos < n) {
             int toCopy = Math.min(chunkSize, n - srcPos);
-            Chunk newChunk = addEmptyChunkAfter(lastChunk);
+            Chunk<E> newChunk = addEmptyChunkAfter(lastChunk);
             System.arraycopy(incoming, srcPos, newChunk.elements, 0, toCopy);
             newChunk.nbElements = toCopy;
             size += toCopy;
@@ -493,7 +493,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
             }
             return;
         }
-        Chunk current = firstChunk;
+        Chunk<E> current = firstChunk;
         int remaining = index;
         do {
             if (remaining < current.nbElements) {
@@ -537,7 +537,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
         if (isEmpty()) {
             return false;
         }
-        Chunk current = firstChunk;
+        Chunk<E> current = firstChunk;
         while (current != null) {
             for (int i = 0; i < current.nbElements; i++) {
                 if (o == null ? current.elements[i] == null : o.equals(current.elements[i])) {
@@ -560,7 +560,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
         if (index < 0 || index >= size) {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
         }
-        Chunk current = firstChunk;
+        Chunk<E> current = firstChunk;
         int remaining = index;
         do {
             if (remaining < current.nbElements) {
@@ -591,12 +591,12 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
         if (isEmpty()) {
             return;
         }
-        Chunk newFirst = null;
-        Chunk newLast = null;
-        Chunk current = firstChunk;
+        Chunk<E> newFirst = null;
+        Chunk<E> newLast = null;
+        Chunk<E> current = firstChunk;
         int srcIndex = 0;
         while (current != null) {
-            Chunk newChunk = new Chunk(chunkSize);
+            Chunk<E> newChunk = new Chunk<>(chunkSize);
             if (newFirst == null) {
                 newFirst = newChunk;
             } else {
@@ -629,14 +629,14 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
 
     // ─── Private methods ──────────────────────────────────────────────────────
 
-    private void add(E e, Chunk chunk, int nbElements) {
+    private void add(E e, Chunk<E> chunk, int nbElements) {
         chunk.elements[nbElements] = e;
         chunk.nbElements++;
         size++;
         modCount++;
     }
 
-    private void removeFromChunk(Chunk chunk, int i) {
+    private void removeFromChunk(Chunk<E> chunk, int i) {
         if (chunk.nbElements == 1) {
             // Skip arraycopy — remove the chunk directly
             removeChunk(chunk);
@@ -653,8 +653,8 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
         handleShrunkChunk(chunk);
     }
 
-    private Chunk addEmptyChunkAfter(Chunk chunk) {
-        Chunk newChunk = new Chunk(chunkSize);
+    private Chunk<E> addEmptyChunkAfter(Chunk<E> chunk) {
+        Chunk<E> newChunk = new Chunk<>(chunkSize);
         if (chunk == null) {
             firstChunk = newChunk;
             lastChunk = newChunk;
@@ -671,14 +671,14 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
         return newChunk;
     }
 
-    private void handleFullChunk(Chunk chunk, E overflow) {
+    private void handleFullChunk(Chunk<E> chunk, E overflow) {
         switch (currentGrowingStrategy) {
             case EXTEND_STRATEGY:
-                Chunk newChunk = addEmptyChunkAfter(chunk);
+                Chunk<E> newChunk = addEmptyChunkAfter(chunk);
                 add(overflow, newChunk, 0);
                 break;
             case OVERFLOW_STRATEGY:
-                Chunk next = chunk.nextChunk != null
+                Chunk<E> next = chunk.nextChunk != null
                         ? chunk.nextChunk : addEmptyChunkAfter(chunk);
                 if (next.nbElements < chunkSize) {
                     System.arraycopy(next.elements, 0, next.elements, 1, next.nbElements);
@@ -698,7 +698,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
         }
     }
 
-    private void removeChunk(Chunk chunk) {
+    private void removeChunk(Chunk<E> chunk) {
         if (chunk.previousChunk != null) {
             chunk.previousChunk.nextChunk = chunk.nextChunk;
         } else {
@@ -711,7 +711,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
         }
     }
 
-    private void handleShrunkChunk(Chunk chunk) {
+    private void handleShrunkChunk(Chunk<E> chunk) {
         switch (currentShrinkingStrategy) {
             case DISAPPEAR_STRATEGY:
                 if (chunk.nbElements == 0) {
@@ -744,7 +744,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
      */
     final int countChunks() {
         int count = 0;
-        Chunk current = firstChunk;
+        Chunk<E> current = firstChunk;
         while (current != null) {
             count++;
             current = current != lastChunk ? current.nextChunk : null;
@@ -764,7 +764,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
 
     private class ChunkIterator implements Iterator<E> {
 
-        private Chunk currentChunk;
+        private Chunk<E> currentChunk;
         private int currentIndex;
         private int expectedModCount;
 
@@ -812,12 +812,12 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
      */
     private class ChunkSpliterator implements Spliterator<E> {
 
-        private Chunk currentChunk;
+        private Chunk<E> currentChunk;
         private int currentIndex;
-        private Chunk endChunk;
+        private Chunk<E> endChunk;
         private long remaining;
 
-        private ChunkSpliterator(Chunk startChunk, Chunk endChunk, long remaining) {
+        private ChunkSpliterator(Chunk<E> startChunk, Chunk<E> endChunk, long remaining) {
             this.currentChunk = startChunk;
             this.currentIndex = 0;
             this.endChunk = endChunk;
@@ -845,7 +845,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
             }
 
             int chunkCount = 0;
-            Chunk c = currentChunk;
+            Chunk<E> c = currentChunk;
             while (c != endChunk) {
                 chunkCount++;
                 c = c.nextChunk;
@@ -855,7 +855,7 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
             }
 
             int half = chunkCount / 2;
-            Chunk mid = currentChunk;
+            Chunk<E> mid = currentChunk;
             long firstHalfSize = 0;
             for (int i = 0; i < half; i++) {
                 firstHalfSize += mid.nbElements;
@@ -886,14 +886,14 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
 
     // ─── Inner class: Chunk ───────────────────────────────────────────────────
 
-    private class Chunk implements Serializable {
+    private static class Chunk<E> implements Serializable {
 
         private static final long serialVersionUID = 1L;
 
         private E[] elements;
         private int nbElements;
-        private Chunk previousChunk;
-        private Chunk nextChunk;
+        private Chunk<E> previousChunk;
+        private Chunk<E> nextChunk;
 
         @SuppressWarnings("unchecked")
         private Chunk(int chunkSize) {
@@ -901,26 +901,26 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E>
             this.nbElements = 0;
         }
 
-        private Chunk copy() {
-            Chunk newChunk = new Chunk(chunkSize);
+        private Chunk<E> copy() {
+            Chunk<E> newChunk = new Chunk<>(elements.length);
             System.arraycopy(elements, 0, newChunk.elements, 0, nbElements);
             newChunk.nbElements = nbElements;
             return newChunk;
         }
 
-        private Chunk getPreviousChunk() {
+        private Chunk<E> getPreviousChunk() {
             return previousChunk;
         }
 
-        private void setPreviousChunk(Chunk previousChunk) {
+        private void setPreviousChunk(Chunk<E> previousChunk) {
             this.previousChunk = previousChunk;
         }
 
-        private Chunk getNextChunk() {
+        private Chunk<E> getNextChunk() {
             return nextChunk;
         }
 
-        private void setNextChunk(Chunk nextChunk) {
+        private void setNextChunk(Chunk<E> nextChunk) {
             this.nextChunk = nextChunk;
         }
     }
