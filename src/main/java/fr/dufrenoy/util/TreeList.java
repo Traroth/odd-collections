@@ -42,10 +42,15 @@ import java.util.Optional;
  *   <li>{@link #add(int, Object)}</li>
  *   <li>{@link #addAll(int, java.util.Collection)}</li>
  *   <li>{@link #set(int, Object)}</li>
- *   <li>{@link #subList(int, int)}</li>
  *   <li>{@link java.util.ListIterator#add(Object) ListIterator.add(E)}</li>
  *   <li>{@link java.util.ListIterator#set(Object) ListIterator.set(E)}</li>
  * </ul>
+ *
+ * <p>{@link #subList(int, int)} returns a live view of this list bounded by
+ * element values. The view reflects mutations to the parent list and vice
+ * versa. Adding an element outside the view's value range throws
+ * {@link IllegalArgumentException}, following the same convention as
+ * {@link java.util.TreeMap#subMap(Object, Object)}.
  *
  * <p>All elements inserted into a {@code TreeList} must be mutually comparable
  * using the list's comparator (or natural ordering). Attempting to insert an
@@ -85,4 +90,40 @@ public interface TreeList<E> extends List<E> {
      *         {@code Optional} if natural ordering is used
      */
     /*@ pure @*/ Optional<Comparator<? super E>> comparator();
+
+    /**
+     * Returns a live view of the portion of this list whose elements range
+     * from the element at {@code fromIndex} (inclusive) to the element at
+     * {@code toIndex} (exclusive). The returned view is itself a
+     * {@code TreeList}: it is sorted, contains no duplicates, and supports
+     * the same operations as this list.
+     *
+     * <p>The view is bounded by <em>element values</em>, not by indices.
+     * After creation, the view contains all elements {@code e} in this list
+     * such that {@code compare(fromElement, e) <= 0} and
+     * {@code compare(e, toElement) < 0}, where {@code fromElement} and
+     * {@code toElement} are the elements at positions {@code fromIndex} and
+     * {@code toIndex} at the time the view was created.
+     *
+     * <p>Structural modifications through the view (add, remove, clear) are
+     * reflected in the parent list, and vice versa. However, if the parent
+     * list is structurally modified outside the view, the view becomes
+     * invalid and subsequent operations will throw
+     * {@link java.util.ConcurrentModificationException} (fail-fast).
+     *
+     * <p>Adding an element that falls outside the view's value range throws
+     * {@link IllegalArgumentException}, following the same convention as
+     * {@link java.util.TreeMap#subMap(Object, Object)}.
+     *
+     * @param fromIndex low endpoint (inclusive) of the subList
+     * @param toIndex   high endpoint (exclusive) of the subList
+     * @return a view of the specified range within this list
+     * @throws IndexOutOfBoundsException if {@code fromIndex < 0} or
+     *         {@code toIndex > size()}
+     * @throws IllegalArgumentException if {@code fromIndex > toIndex}
+     */
+    //@ requires fromIndex >= 0 && toIndex <= size();
+    //@ requires fromIndex <= toIndex;
+    @Override
+    TreeList<E> subList(int fromIndex, int toIndex);
 }

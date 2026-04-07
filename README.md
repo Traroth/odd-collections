@@ -260,7 +260,8 @@ Unlike `ArrayList`, insertion and removal are O(log n) with no element shifting.
 - `comparator()` returns the comparator in use, or an empty `Optional` for natural ordering
 - Collection constructors (with or without a `Comparator`), with duplicate elements silently discarded
 - Snapshot-based iterators in `SynchronizedTreeList`
-- Positional insertion (`add(int, E)`), replacement (`set`), and `subList` are not supported and throw `UnsupportedOperationException`
+- **`subList(int, int)`** returns a live view bounded by element values — mutations through the view are reflected in the parent list and vice versa. Adding an element outside the value range throws `IllegalArgumentException`. In `SynchronizedTreeList`, `subList` returns an independent snapshot instead of a live view, consistent with the snapshot-based iterator pattern.
+- Positional insertion (`add(int, E)`) and replacement (`set`) are not supported and throw `UnsupportedOperationException`
 
 #### Usage
 
@@ -288,6 +289,11 @@ System.out.println(desc.get(0)); // cherry
 List<Integer> source = List.of(3, 1, 4, 1, 5, 9);
 TreeList<Integer> list = new UnsynchronizedTreeList<>(source);
 System.out.println(list.size()); // 5 (duplicate 1 discarded)
+
+// Live subList view — bounded by element values
+TreeList<Integer> view = list.subList(1, 3); // elements at indices 1..2
+view.add(6);   // added to parent if within view's value range
+view.remove(0); // removes from parent
 
 // Thread-safe
 TreeList<Integer> list = new SynchronizedTreeList<>();

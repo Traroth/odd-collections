@@ -24,10 +24,6 @@ of each session.
 - [ ] Port odd-collections to TypeScript
 - [ ] Port odd-collections to Python
 
-## TreeList
-
-- [ ] Implement `subList(int, int)` — live view over a tree-backed structure
-
 ---
 
 ## JML / Formal verification
@@ -171,6 +167,9 @@ Each item should be benchmarked before and after to confirm impact.
 - [x] Create `UnsynchronizedTreeListWhiteBoxTest`
 - [x] Create `SynchronizedTreeListBlackBoxTest`
 - [x] Create `SynchronizedTreeListWhiteBoxTest`
+- [x] Implement `subList(int, int)` — live view bounded by element values
+  (`SubList` inner class, `ceilingNode()`, value-bounded view with fail-fast,
+  snapshot in `SynchronizedTreeList`, 55 tests across 4 files)
 
 ### ChunkyList
 

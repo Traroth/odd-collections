@@ -311,12 +311,71 @@ public class SynchronizedTreeListBlackBoxTest {
         assertThrows(UnsupportedOperationException.class, () -> list.set(0, 99));
     }
 
+    // ─── subList — snapshot ──────────────────────────────────────────────
+
     @Test
-    public void testSubList_ThrowsUnsupportedOperationException() {
+    public void testSubList_ReturnsCorrectElements() {
         TreeList<Integer> list = new SynchronizedTreeList<>();
-        list.add(1);
-        list.add(2);
-        assertThrows(UnsupportedOperationException.class, () -> list.subList(0, 1));
+        for (int i = 1; i <= 10; i++) { list.add(i); }
+        TreeList<Integer> sub = list.subList(2, 7);
+        assertEquals(List.of(3, 4, 5, 6, 7), sub);
+    }
+
+    @Test
+    public void testSubList_IsSnapshot_NotLiveView() {
+        TreeList<Integer> list = new SynchronizedTreeList<>();
+        for (int i = 1; i <= 5; i++) { list.add(i); }
+        TreeList<Integer> sub = list.subList(1, 4); // snapshot of [2, 3, 4]
+
+        list.remove(Integer.valueOf(3));
+        // Snapshot is independent — still contains 3
+        assertTrue(sub.contains(3));
+        assertEquals(3, sub.size());
+    }
+
+    @Test
+    public void testSubList_Snapshot_MutationsDoNotAffectParent() {
+        TreeList<Integer> list = new SynchronizedTreeList<>();
+        for (int i = 1; i <= 5; i++) { list.add(i); }
+        TreeList<Integer> sub = list.subList(1, 4); // snapshot of [2, 3, 4]
+
+        sub.remove(Integer.valueOf(3));
+        // Parent is not affected
+        assertTrue(list.contains(3));
+        assertEquals(5, list.size());
+    }
+
+    @Test
+    public void testSubList_EmptyRange() {
+        TreeList<Integer> list = new SynchronizedTreeList<>();
+        list.add(1); list.add(2);
+        TreeList<Integer> sub = list.subList(1, 1);
+        assertTrue(sub.isEmpty());
+    }
+
+    @Test
+    public void testSubList_FullRange() {
+        TreeList<Integer> list = new SynchronizedTreeList<>();
+        list.add(3); list.add(1); list.add(2);
+        TreeList<Integer> sub = list.subList(0, 3);
+        assertEquals(List.of(1, 2, 3), sub);
+    }
+
+    @Test
+    public void testSubList_InheritsComparator() {
+        TreeList<Integer> list = new SynchronizedTreeList<>(Comparator.reverseOrder());
+        list.add(1); list.add(2); list.add(3);
+        TreeList<Integer> sub = list.subList(0, 2);
+        assertTrue(sub.comparator().isPresent());
+    }
+
+    @Test
+    public void testSubList_InvalidRange_ThrowsExceptions() {
+        TreeList<Integer> list = new SynchronizedTreeList<>();
+        list.add(1); list.add(2);
+        assertThrows(IndexOutOfBoundsException.class, () -> list.subList(-1, 1));
+        assertThrows(IndexOutOfBoundsException.class, () -> list.subList(0, 3));
+        assertThrows(IllegalArgumentException.class, () -> list.subList(2, 1));
     }
 
     @Test

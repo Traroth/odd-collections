@@ -440,14 +440,38 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
     }
 
     /**
-     * Not supported. A live subList view over a tree-backed structure is not
-     * yet implemented.
+     * {@inheritDoc}
      *
-     * @throws UnsupportedOperationException always
+     * <p>Returns a live view bounded by the element values at positions
+     * {@code fromIndex} and {@code toIndex} at the time this method is called.
+     *
+     * @throws IndexOutOfBoundsException if {@code fromIndex < 0} or
+     *         {@code toIndex > size()}
+     * @throws IllegalArgumentException  if {@code fromIndex > toIndex}
      */
+    //@ also
+    //@ requires fromIndex >= 0 && toIndex <= size();
+    //@ requires fromIndex <= toIndex;
     @Override
-    public List<E> subList(int fromIndex, int toIndex) {
-        throw new UnsupportedOperationException();
+    public TreeList<E> subList(int fromIndex, int toIndex) {
+        subListRangeCheck(fromIndex, toIndex, size);
+
+        E from = (fromIndex == 0) ? null : findByIndex(fromIndex).element;
+        E to   = (toIndex == size) ? null : findByIndex(toIndex).element;
+        return new SubList(from, to, fromIndex == 0, toIndex == size);
+    }
+
+    private static void subListRangeCheck(int fromIndex, int toIndex, int size) {
+        if (fromIndex < 0) {
+            throw new IndexOutOfBoundsException("fromIndex = " + fromIndex);
+        }
+        if (toIndex > size) {
+            throw new IndexOutOfBoundsException("toIndex = " + toIndex);
+        }
+        if (fromIndex > toIndex) {
+            throw new IllegalArgumentException(
+                    "fromIndex(" + fromIndex + ") > toIndex(" + toIndex + ")");
+        }
     }
 
     // ─── List — queries ───────────────────────────────────────────────────────────
@@ -626,6 +650,28 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
                 n = n.left;
             } else {
                 n = n.right;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Returns the first node whose element is greater than or equal to the
+     * given element, or {@code null} if no such node exists. Differs from
+     * {@link #findFirstGreaterThan(Object)} by including equality.
+     */
+    private Node<E> ceilingNode(E element) {
+        Node<E> n = root;
+        Node<E> result = null;
+        while (n != null) {
+            int cmp = compareElements(element, n.element);
+            if (cmp < 0) {
+                result = n;
+                n = n.left;
+            } else if (cmp > 0) {
+                n = n.right;
+            } else {
+                return n;
             }
         }
         return result;
@@ -954,6 +1000,634 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
             if (modCount != expectedModCount) {
                 throw new ConcurrentModificationException();
             }
+        }
+    }
+
+    // ─── Inner class — SubList (live view bounded by element values) ─────────────
+
+    /**
+     * A live view of a range of this {@code UnsynchronizedTreeList}, bounded by
+     * element values rather than indices. The view is itself a {@link TreeList}:
+     * sorted, duplicate-free, and supporting the same operations.
+     *
+     * <p>The bounds are captured at creation time and are immutable. All elements
+     * {@code e} in the parent list such that
+     * {@code compare(fromElement, e) <= 0 && compare(e, toElement) < 0} belong
+     * to this view. If an element equal to a bound is removed from the parent,
+     * the comparison still holds — the bound values act as markers, not node
+     * references.
+     *
+     * <p>Structural modifications through this view update the parent list and
+     * refresh the expected modification count. External modifications to the
+     * parent invalidate this view (fail-fast via
+     * {@link ConcurrentModificationException}).
+     *
+     * <p>Adding an element outside the value range throws
+     * {@link IllegalArgumentException}, following the convention of
+     * {@link java.util.TreeMap#subMap(Object, Object)}.
+     */
+    private final class SubList extends AbstractList<E> implements TreeList<E> {
+
+        /*@
+          @ public invariant size() >= 0;
+          @ public invariant (\forall int i; 0 <= i && i < size(); get(i) != null);
+          @ public invariant (\forall int i; 0 <= i && i < size() - 1;
+          @     compare(get(i), get(i + 1)) < 0);
+          @ public invariant !fromStart ==>
+          @     (\forall int i; 0 <= i && i < size();
+          @         compare(fromElement, get(i)) <= 0);
+          @ public invariant !toEnd ==>
+          @     (\forall int i; 0 <= i && i < size();
+          @         compare(get(i), toElement) < 0);
+          @ model public pure helper int compare(E a, E b);
+          @*/
+
+        private final E       fromElement;
+        private final E       toElement;
+        private final boolean fromStart;
+        private final boolean toEnd;
+        private int           expectedModCount;
+
+        /**
+         * Creates a new SubList bounded by element values.
+         *
+         * @param fromElement lower bound (inclusive), ignored if {@code fromStart}
+         * @param toElement   upper bound (exclusive), ignored if {@code toEnd}
+         * @param fromStart   {@code true} if there is no lower bound
+         * @param toEnd       {@code true} if there is no upper bound
+         */
+        //@ ensures size() >= 0;
+        SubList(E fromElement, E toElement, boolean fromStart, boolean toEnd) {
+            this.fromElement      = fromElement;
+            this.toElement        = toElement;
+            this.fromStart        = fromStart;
+            this.toEnd            = toEnd;
+            this.expectedModCount = UnsynchronizedTreeList.this.modCount;
+        }
+
+        // ─── TreeList ────────────────────────────────────────────────────────────
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Optional<Comparator<? super E>> comparator() {
+            return UnsynchronizedTreeList.this.comparator();
+        }
+
+        // ─── List — size and indexed access ──────────────────────────────────────
+
+        /**
+         * Returns the number of elements in this view. Computed as the
+         * difference between the ranks of the high and low boundaries in the
+         * parent tree.
+         *
+         * @return the number of elements in this view
+         */
+        //@ also
+        //@ ensures \result >= 0;
+        @Override
+        public int size() {
+            checkForComodification();
+            return Math.max(0, highIndex() - lowIndex());
+        }
+
+        /**
+         * Returns the element at the specified position in this view.
+         *
+         * @param index index of the element to return (relative to this view)
+         * @return the element at the specified position
+         * @throws IndexOutOfBoundsException if {@code index < 0 || index >= size()}
+         * @throws ConcurrentModificationException if the parent list was
+         *         structurally modified outside this view
+         */
+        //@ also
+        //@ requires 0 <= index && index < size();
+        //@ ensures \result != null;
+        @Override
+        public E get(int index) {
+            checkForComodification();
+            int s = size();
+            if (index < 0 || index >= s) {
+                throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + s);
+            }
+            return findByIndex(lowIndex() + index).element;
+        }
+
+        // ─── List — insertion ────────────────────────────────────────────────────
+
+        /**
+         * Adds the specified element to the parent list, if it falls within
+         * this view's value range and is not already present.
+         *
+         * @param e the element to add
+         * @return {@code true} if the parent list changed
+         * @throws IllegalArgumentException if {@code e} falls outside the
+         *         view's value range
+         * @throws NullPointerException     if {@code e} is {@code null}
+         * @throws ConcurrentModificationException if the parent list was
+         *         structurally modified outside this view
+         */
+        //@ also
+        //@ requires e != null;
+        //@ ensures contains(e);
+        @Override
+        public boolean add(E e) {
+            checkForComodification();
+            Objects.requireNonNull(e);
+            if (!inRange(e)) {
+                throw new IllegalArgumentException(
+                        "Element " + e + " is outside the range of this subList");
+            }
+            boolean result = UnsynchronizedTreeList.this.add(e);
+            expectedModCount = UnsynchronizedTreeList.this.modCount;
+            return result;
+        }
+
+        /**
+         * Not supported. The position of elements is determined by sort order.
+         *
+         * @throws UnsupportedOperationException always
+         */
+        @Override
+        public void add(int index, E element) {
+            throw new UnsupportedOperationException();
+        }
+
+        /**
+         * Not supported. Positional insertion is not supported.
+         *
+         * @throws UnsupportedOperationException always
+         */
+        @Override
+        public boolean addAll(int index, Collection<? extends E> c) {
+            throw new UnsupportedOperationException();
+        }
+
+        // ─── List — removal ──────────────────────────────────────────────────────
+
+        /**
+         * Removes the element at the specified position in this view from the
+         * parent list.
+         *
+         * @param index the index of the element to be removed (relative to
+         *              this view)
+         * @return the element previously at the specified position
+         * @throws IndexOutOfBoundsException if {@code index < 0 || index >= size()}
+         * @throws ConcurrentModificationException if the parent list was
+         *         structurally modified outside this view
+         */
+        //@ also
+        //@ requires 0 <= index && index < size();
+        //@ ensures size() == \old(size()) - 1;
+        //@ ensures \result != null;
+        @Override
+        public E remove(int index) {
+            checkForComodification();
+            int s = size();
+            if (index < 0 || index >= s) {
+                throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + s);
+            }
+            E result = UnsynchronizedTreeList.this.remove(lowIndex() + index);
+            expectedModCount = UnsynchronizedTreeList.this.modCount;
+            return result;
+        }
+
+        /**
+         * Removes the specified element from the parent list, if it is present
+         * in this view.
+         *
+         * @param o the element to be removed
+         * @return {@code true} if the parent list changed
+         * @throws ConcurrentModificationException if the parent list was
+         *         structurally modified outside this view
+         */
+        //@ also
+        //@ ensures \result <==> \old(contains(o));
+        //@ ensures !contains(o);
+        @Override
+        public boolean remove(Object o) {
+            checkForComodification();
+            if (!inRange(o)) {
+                return false;
+            }
+            boolean result = UnsynchronizedTreeList.this.remove(o);
+            if (result) {
+                expectedModCount = UnsynchronizedTreeList.this.modCount;
+            }
+            return result;
+        }
+
+        /**
+         * Removes all elements in this view from the parent list.
+         *
+         * @throws ConcurrentModificationException if the parent list was
+         *         structurally modified outside this view
+         */
+        //@ also
+        //@ ensures size() == 0;
+        @Override
+        public void clear() {
+            checkForComodification();
+            // Iterate through the range and delete each element from the parent.
+            Node<E> n = fromStart ? firstNode() : ceilingNode(fromElement);
+            while (n != null) {
+                if (!toEnd && compareElements(n.element, toElement) >= 0) {
+                    break;
+                }
+                E element = n.element;
+                deleteEntry(findNode(element));
+                // Re-anchor: deleteEntry may have consumed successor(n)
+                // internally (two-children case).
+                n = findFirstGreaterThan(element);
+            }
+            expectedModCount = UnsynchronizedTreeList.this.modCount;
+        }
+
+        /**
+         * Removes from the parent list all elements in this view that are
+         * contained in the specified collection.
+         *
+         * <p>Overridden because {@link AbstractList#removeAll(Collection)}
+         * delegates to {@link Iterator#remove()}, which is not supported.
+         *
+         * @param c the collection containing elements to be removed
+         * @return {@code true} if this view changed as a result of the call
+         * @throws NullPointerException if {@code c} is {@code null}
+         * @throws ConcurrentModificationException if the parent list was
+         *         structurally modified outside this view
+         */
+        //@ also
+        //@ requires c != null;
+        //@ ensures (\forall Object e; c.contains(e); !contains(e));
+        @Override
+        public boolean removeAll(Collection<?> c) {
+            checkForComodification();
+            Objects.requireNonNull(c);
+            boolean modified = false;
+            Node<E> n = fromStart ? firstNode() : ceilingNode(fromElement);
+            while (n != null) {
+                if (!toEnd && compareElements(n.element, toElement) >= 0) {
+                    break;
+                }
+                E element = n.element;
+                if (c.contains(element)) {
+                    deleteEntry(findNode(element));
+                    modified = true;
+                    // Re-anchor: deleteEntry may have consumed successor(n)
+                    // internally (two-children case).
+                    n = findFirstGreaterThan(element);
+                } else {
+                    n = successor(n);
+                }
+            }
+            if (modified) {
+                expectedModCount = UnsynchronizedTreeList.this.modCount;
+            }
+            return modified;
+        }
+
+        /**
+         * Retains only the elements in this view that are contained in the
+         * specified collection. All other elements are removed from the parent
+         * list.
+         *
+         * <p>Overridden because {@link AbstractList#retainAll(Collection)}
+         * delegates to {@link Iterator#remove()}, which is not supported.
+         *
+         * @param c the collection containing elements to be retained
+         * @return {@code true} if this view changed as a result of the call
+         * @throws NullPointerException if {@code c} is {@code null}
+         * @throws ConcurrentModificationException if the parent list was
+         *         structurally modified outside this view
+         */
+        //@ also
+        //@ requires c != null;
+        //@ ensures (\forall int i; 0 <= i && i < size(); c.contains(get(i)));
+        @Override
+        public boolean retainAll(Collection<?> c) {
+            checkForComodification();
+            Objects.requireNonNull(c);
+            boolean modified = false;
+            Node<E> n = fromStart ? firstNode() : ceilingNode(fromElement);
+            while (n != null) {
+                if (!toEnd && compareElements(n.element, toElement) >= 0) {
+                    break;
+                }
+                E element = n.element;
+                if (!c.contains(element)) {
+                    deleteEntry(findNode(element));
+                    modified = true;
+                    // Re-anchor: deleteEntry may have consumed successor(n)
+                    // internally (two-children case).
+                    n = findFirstGreaterThan(element);
+                } else {
+                    n = successor(n);
+                }
+            }
+            if (modified) {
+                expectedModCount = UnsynchronizedTreeList.this.modCount;
+            }
+            return modified;
+        }
+
+        // ─── List — unsupported positional mutations ─────────────────────────────
+
+        /**
+         * Not supported. The position of elements is determined by sort order.
+         *
+         * @throws UnsupportedOperationException always
+         */
+        @Override
+        public E set(int index, E element) {
+            throw new UnsupportedOperationException();
+        }
+
+        // ─── List — queries ──────────────────────────────────────────────────────
+
+        /**
+         * Returns {@code true} if this view contains the specified element.
+         *
+         * @param o the element whose presence is to be tested
+         * @return {@code true} if the element is present in this view
+         * @throws ConcurrentModificationException if the parent list was
+         *         structurally modified outside this view
+         */
+        //@ also
+        //@ ensures \result ==> inRange(o);
+        @Override
+        public boolean contains(Object o) {
+            checkForComodification();
+            if (!inRange(o)) {
+                return false;
+            }
+            return findNode(o) != null;
+        }
+
+        /**
+         * Returns the index of the specified element in this view, or
+         * {@code -1} if it is not present.
+         *
+         * @param o the element to search for
+         * @return the index of the element in this view, or {@code -1}
+         * @throws ConcurrentModificationException if the parent list was
+         *         structurally modified outside this view
+         */
+        //@ also
+        //@ ensures \result >= -1 && \result < size();
+        //@ ensures \result == -1 <==> !contains(o);
+        @Override
+        public int indexOf(Object o) {
+            checkForComodification();
+            if (!inRange(o)) {
+                return -1;
+            }
+            int parentIndex = UnsynchronizedTreeList.this.indexOf(o);
+            if (parentIndex < 0) {
+                return -1;
+            }
+            return parentIndex - lowIndex();
+        }
+
+        /**
+         * Equivalent to {@link #indexOf(Object)} since this view contains no
+         * duplicates.
+         */
+        //@ also
+        //@ ensures \result == indexOf(o);
+        @Override
+        public int lastIndexOf(Object o) {
+            return indexOf(o);
+        }
+
+        // ─── Iterators ──────────────────────────────────────────────────────────
+
+        /**
+         * Returns an iterator over the elements in this view in sorted order.
+         *
+         * @return an iterator over the elements in this view
+         */
+        @Override
+        public Iterator<E> iterator() {
+            return listIterator(0);
+        }
+
+        /**
+         * Returns a list iterator over the elements in this view, starting at
+         * the specified position.
+         *
+         * @param index index of the first element to be returned
+         * @return a list iterator starting at the specified position
+         * @throws IndexOutOfBoundsException if {@code index < 0 || index > size()}
+         * @throws ConcurrentModificationException if the parent list was
+         *         structurally modified outside this view
+         */
+        //@ also
+        //@ requires 0 <= index && index <= size();
+        @Override
+        public ListIterator<E> listIterator(int index) {
+            checkForComodification();
+            int s = size();
+            if (index < 0 || index > s) {
+                throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + s);
+            }
+            return new SubListIterator(index, s);
+        }
+
+        /**
+         * List iterator for the SubList, bounded by the view's value range.
+         * Traverses the parent tree in-order, restricted to elements within
+         * {@code [fromElement, toElement)}.
+         */
+        private final class SubListIterator implements ListIterator<E> {
+
+            private Node<E> nextNode;
+            private int     nextIndex;
+            private final int subSize;
+            private final int iterExpectedModCount;
+
+            SubListIterator(int index, int subSize) {
+                this.iterExpectedModCount = UnsynchronizedTreeList.this.modCount;
+                this.nextIndex            = index;
+                this.subSize              = subSize;
+                if (index == subSize) {
+                    this.nextNode = null;
+                } else {
+                    this.nextNode = findByIndex(lowIndex() + index);
+                }
+            }
+
+            @Override
+            public boolean hasNext() {
+                return nextIndex < subSize;
+            }
+
+            @Override
+            public E next() {
+                checkIteratorModification();
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                E result = nextNode.element;
+                nextNode = successor(nextNode);
+                nextIndex++;
+                return result;
+            }
+
+            @Override
+            public boolean hasPrevious() {
+                return nextIndex > 0;
+            }
+
+            @Override
+            public E previous() {
+                checkIteratorModification();
+                if (!hasPrevious()) {
+                    throw new NoSuchElementException();
+                }
+                if (nextNode == null) {
+                    // At the end — find the last node in range
+                    int absIndex = lowIndex() + nextIndex - 1;
+                    nextNode = findByIndex(absIndex);
+                } else {
+                    nextNode = predecessor(nextNode);
+                }
+                nextIndex--;
+                return nextNode.element;
+            }
+
+            @Override
+            public int nextIndex() {
+                return nextIndex;
+            }
+
+            @Override
+            public int previousIndex() {
+                return nextIndex - 1;
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void set(E e) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void add(E e) {
+                throw new UnsupportedOperationException();
+            }
+
+            private void checkIteratorModification() {
+                if (UnsynchronizedTreeList.this.modCount != iterExpectedModCount) {
+                    throw new ConcurrentModificationException();
+                }
+            }
+        }
+
+        // ─── SubList — nested ────────────────────────────────────────────────────
+
+        /**
+         * Returns a nested live view with narrowed bounds, directly backed by
+         * the root {@code UnsynchronizedTreeList} (no SubList-on-SubList
+         * chaining).
+         *
+         * @param fromIndex low endpoint (inclusive) relative to this view
+         * @param toIndex   high endpoint (exclusive) relative to this view
+         * @return a view of the specified range within this view
+         * @throws IndexOutOfBoundsException if endpoints are out of range
+         * @throws IllegalArgumentException  if {@code fromIndex > toIndex}
+         * @throws ConcurrentModificationException if the parent list was
+         *         structurally modified outside this view
+         */
+        //@ also
+        //@ requires fromIndex >= 0 && toIndex <= size();
+        //@ requires fromIndex <= toIndex;
+        //@ ensures \result.size() == toIndex - fromIndex;
+        @Override
+        public TreeList<E> subList(int fromIndex, int toIndex) {
+            checkForComodification();
+            int s = size();
+            subListRangeCheck(fromIndex, toIndex, s);
+
+            // Compute narrowed bounds relative to the parent tree.
+            E newFrom;
+            boolean newFromStart;
+            if (fromIndex == 0) {
+                newFrom      = this.fromElement;
+                newFromStart = this.fromStart;
+            } else {
+                newFrom      = get(fromIndex);
+                newFromStart = false;
+            }
+
+            E newTo;
+            boolean newToEnd;
+            if (toIndex == s) {
+                newTo    = this.toElement;
+                newToEnd = this.toEnd;
+            } else {
+                newTo    = get(toIndex);
+                newToEnd = false;
+            }
+
+            return new SubList(newFrom, newTo, newFromStart, newToEnd);
+        }
+
+        // ─── Private helpers ─────────────────────────────────────────────────────
+
+        /**
+         * Checks that the parent list has not been structurally modified
+         * outside this view.
+         */
+        private void checkForComodification() {
+            if (UnsynchronizedTreeList.this.modCount != expectedModCount) {
+                throw new ConcurrentModificationException();
+            }
+        }
+
+        /**
+         * Returns {@code true} if the given element falls within this view's
+         * value range: {@code [fromElement, toElement)}.
+         */
+        @SuppressWarnings("unchecked")
+        private boolean inRange(Object o) {
+            E e = (E) o;
+            if (!fromStart && compareElements(e, fromElement) < 0) {
+                return false;
+            }
+            if (!toEnd && compareElements(e, toElement) >= 0) {
+                return false;
+            }
+            return true;
+        }
+
+        /**
+         * Returns the rank (absolute index in the parent list) of the first
+         * element in this view, or the parent size if this view is empty.
+         */
+        private int lowIndex() {
+            if (fromStart) {
+                return 0;
+            }
+            Node<E> lo = ceilingNode(fromElement);
+            return lo == null ? size : rankOf(lo);
+        }
+
+        /**
+         * Returns the rank (absolute index in the parent list) of the first
+         * element past this view's upper bound, or the parent size if
+         * {@code toEnd} is true.
+         */
+        private int highIndex() {
+            if (toEnd) {
+                return size;
+            }
+            Node<E> hi = ceilingNode(toElement);
+            return hi == null ? size : rankOf(hi);
         }
     }
 }

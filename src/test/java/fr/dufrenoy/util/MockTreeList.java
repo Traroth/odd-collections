@@ -112,9 +112,29 @@ class MockTreeList<E> extends AbstractList<E> implements TreeList<E> {
         throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public List<E> subList(int fromIndex, int toIndex) {
-        throw new UnsupportedOperationException();
+    public TreeList<E> subList(int fromIndex, int toIndex) {
+        if (fromIndex < 0) {
+            throw new IndexOutOfBoundsException("fromIndex = " + fromIndex);
+        }
+        if (toIndex > size()) {
+            throw new IndexOutOfBoundsException("toIndex = " + toIndex);
+        }
+        if (fromIndex > toIndex) {
+            throw new IllegalArgumentException(
+                    "fromIndex(" + fromIndex + ") > toIndex(" + toIndex + ")");
+        }
+        // Build a new MockTreeList containing only elements in the index range.
+        // This is a snapshot, not a live view — sufficient for interface contract
+        // testing (which verifies the return type and basic behavior, not
+        // live-view semantics).
+        List<E> snapshot = new ArrayList<>(set);
+        MockTreeList<E> sub = new MockTreeList<>(comparator);
+        for (int i = fromIndex; i < toIndex; i++) {
+            sub.add(snapshot.get(i));
+        }
+        return sub;
     }
 
     @Override

@@ -320,12 +320,92 @@ public class TreeListTest {
         assertThrows(UnsupportedOperationException.class, () -> list.set(0, 99));
     }
 
+    // ─── subList ───────────────────────────────────────────────────────────
+
     @Test
-    public void testSubList_ThrowsUnsupportedOperationException() {
+    public void testSubList_ReturnsTreeList() {
         TreeList<Integer> list = new MockTreeList<>();
         list.add(1);
         list.add(2);
-        assertThrows(UnsupportedOperationException.class, () -> list.subList(0, 1));
+        list.add(3);
+        TreeList<Integer> sub = list.subList(0, 2);
+        assertEquals(2, sub.size());
+        assertEquals(1, sub.get(0));
+        assertEquals(2, sub.get(1));
+    }
+
+    @Test
+    public void testSubList_EmptyRange() {
+        TreeList<Integer> list = new MockTreeList<>();
+        list.add(1);
+        list.add(2);
+        TreeList<Integer> sub = list.subList(1, 1);
+        assertTrue(sub.isEmpty());
+        assertEquals(0, sub.size());
+    }
+
+    @Test
+    public void testSubList_FullRange() {
+        TreeList<Integer> list = new MockTreeList<>();
+        list.add(3);
+        list.add(1);
+        list.add(2);
+        TreeList<Integer> sub = list.subList(0, 3);
+        assertEquals(3, sub.size());
+        assertEquals(List.of(1, 2, 3), sub);
+    }
+
+    @Test
+    public void testSubList_PreservesSortedOrder() {
+        TreeList<Integer> list = new MockTreeList<>();
+        list.add(5);
+        list.add(3);
+        list.add(1);
+        list.add(4);
+        list.add(2);
+        TreeList<Integer> sub = list.subList(1, 4);
+        assertEquals(List.of(2, 3, 4), sub);
+    }
+
+    @Test
+    public void testSubList_InheritsComparator() {
+        TreeList<Integer> list = new MockTreeList<>(Comparator.reverseOrder());
+        list.add(1);
+        list.add(2);
+        list.add(3);
+        TreeList<Integer> sub = list.subList(0, 2);
+        assertTrue(sub.comparator().isPresent());
+        assertEquals(list.comparator().get(), sub.comparator().get());
+    }
+
+    @Test
+    public void testSubList_InvalidRange_ThrowsExceptions() {
+        TreeList<Integer> list = new MockTreeList<>();
+        list.add(1);
+        list.add(2);
+        assertThrows(IndexOutOfBoundsException.class, () -> list.subList(-1, 1));
+        assertThrows(IndexOutOfBoundsException.class, () -> list.subList(0, 3));
+        assertThrows(IllegalArgumentException.class, () -> list.subList(2, 1));
+    }
+
+    @Test
+    public void testSubList_AddPositional_ThrowsUnsupportedOperationException() {
+        TreeList<Integer> list = new MockTreeList<>();
+        list.add(1);
+        list.add(2);
+        list.add(3);
+        TreeList<Integer> sub = list.subList(0, 2);
+        assertThrows(UnsupportedOperationException.class, () -> sub.add(0, 99));
+    }
+
+    @Test
+    public void testSubList_Set_ThrowsUnsupportedOperationException() {
+        TreeList<Integer> list = new MockTreeList<>();
+        list.add(1);
+        list.add(2);
+        list.add(3);
+        TreeList<Integer> sub = list.subList(0, 2);
+        assertThrows(UnsupportedOperationException.class, () -> sub.set(0, 99));
     }
 
     @Test

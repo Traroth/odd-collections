@@ -404,4 +404,162 @@ public class UnsynchronizedTreeListWhiteBoxTest {
         ListIterator<Integer> it = list.listIterator(0);
         assertThrows(NoSuchElementException.class, it::next);
     }
+
+    // ─── SubList — tree invariants after mutations through the view ───────────
+
+    @Test
+    public void testSubList_AddViaView_PreservesRedBlackInvariants() throws Exception {
+        // Adding through a SubList delegates to the parent tree. The tree must
+        // remain a valid red-black tree after fix-up.
+        UnsynchronizedTreeList<Integer> list = new UnsynchronizedTreeList<>();
+        for (int i = 1; i <= 10; i += 2) { list.add(i); } // [1, 3, 5, 7, 9]
+        TreeList<Integer> sub = list.subList(1, 4); // [3, 5, 7]
+
+        sub.add(4);
+        sub.add(6);
+        assertTreeInvariants(list);
+        assertEquals(7, list.size());
+    }
+
+    @Test
+    public void testSubList_RemoveViaView_PreservesRedBlackAndSubtreeSize() throws Exception {
+        // Removing through a SubList exercises deleteEntry + fix-up. Both
+        // red-black colouring and subtreeSize augmentation must be correct.
+        UnsynchronizedTreeList<Integer> list = new UnsynchronizedTreeList<>();
+        for (int i = 1; i <= 15; i++) { list.add(i); }
+        TreeList<Integer> sub = list.subList(3, 12); // [4..12]
+
+        sub.remove(Integer.valueOf(7));  // internal node, likely two children
+        sub.remove(Integer.valueOf(10)); // may trigger rebalancing
+        assertTreeInvariants(list);
+        assertEquals(13, list.size());
+    }
+
+    @Test
+    public void testSubList_ClearViaView_PreservesTreeInvariants() throws Exception {
+        // clear() deletes all elements in the range one by one. Each deletion
+        // must leave the tree in a valid state. This is the stress test for the
+        // re-anchoring pattern (findFirstGreaterThan after deleteEntry).
+        UnsynchronizedTreeList<Integer> list = new UnsynchronizedTreeList<>();
+        for (int i = 1; i <= 20; i++) { list.add(i); }
+        TreeList<Integer> sub = list.subList(5, 15); // [6..15]
+
+        sub.clear();
+        assertTreeInvariants(list);
+        assertEquals(10, list.size());
+        assertEquals(List.of(1, 2, 3, 4, 5, 16, 17, 18, 19, 20), list);
+    }
+
+    // ─── SubList — re-anchoring in removeAll/retainAll (two-children case) ───
+
+    @Test
+    public void testSubList_RemoveAll_TwoChildrenDeletion_ReAnchorsCorrectly() throws Exception {
+        // deleteEntry on a node with two children copies the in-order successor's
+        // element into the node, then deletes the successor. Without re-anchoring
+        // via findFirstGreaterThan, the traversal would skip the copied element.
+        UnsynchronizedTreeList<Integer> list = new UnsynchronizedTreeList<>();
+        for (int i = 1; i <= 15; i++) { list.add(i); }
+        TreeList<Integer> sub = list.subList(2, 13); // [3..13]
+
+        sub.removeAll(List.of(4, 6, 8, 10, 12));
+        assertEquals(List.of(3, 5, 7, 9, 11, 13), sub);
+        assertTreeInvariants(list);
+    }
+
+    @Test
+    public void testSubList_RetainAll_TwoChildrenDeletion_ReAnchorsCorrectly() throws Exception {
+        // Same scenario as removeAll but via retainAll.
+        UnsynchronizedTreeList<Integer> list = new UnsynchronizedTreeList<>();
+        for (int i = 1; i <= 15; i++) { list.add(i); }
+        TreeList<Integer> sub = list.subList(2, 13); // [3..13]
+
+        sub.retainAll(List.of(3, 7, 11, 13));
+        assertEquals(List.of(3, 7, 11, 13), sub);
+        assertTreeInvariants(list);
+    }
+
+    // ─── SubList — modCount disambiguation (SubList extends AbstractList) ────
+
+    @Test
+    public void testSubList_ModCount_UsesParentNotOwnField() {
+        // SubList extends AbstractList, which also has a modCount field. The
+        // SubList must compare against UnsynchronizedTreeList.this.modCount, not
+        // SubList.this.modCount. If this is wrong, external modifications would
+        // not be detected.
+        UnsynchronizedTreeList<Integer> list = new UnsynchronizedTreeList<>();
+        for (int i = 1; i <= 5; i++) { list.add(i); }
+        TreeList<Integer> sub = list.subList(1, 4);
+
+        // Mutate through the subList — should NOT throw CME
+        sub.remove(Integer.valueOf(3));
+        assertEquals(2, sub.size()); // expectedModCount updated correctly
+
+        // Mutate via the parent — SHOULD throw CME on next subList access
+        list.add(99);
+        assertThrows(ConcurrentModificationException.class, () -> sub.size());
+    }
+
+    @Test
+    public void testSubList_SequentialMutationsThroughView_NoSpuriousCME() {
+        // Multiple mutations through the SubList must not trigger CME between
+        // them. Each mutation must update expectedModCount.
+        UnsynchronizedTreeList<Integer> list = new UnsynchronizedTreeList<>();
+        for (int i = 1; i <= 10; i++) { list.add(i); }
+        TreeList<Integer> sub = list.subList(2, 8); // [3..8]
+
+        sub.remove(Integer.valueOf(4));
+        sub.add(4); // re-add in range
+        sub.remove(0); // remove by index
+        sub.removeAll(List.of(5, 7));
+        // Should reach here without CME
+        assertEquals(List.of(4, 6, 8), sub);
+    }
+
+    // ─── SubList — fence element removed, tree rebalanced ────────────────────
+
+    @Test
+    public void testSubList_FenceRemoved_TreeRebalanced_ViewStillCorrect() throws Exception {
+        // The fence values (fromElement, toElement) are stored as values, not
+        // node references. After removing the fence element and triggering
+        // rebalancing, the SubList must still work correctly because inRange()
+        // compares by value, and lowIndex()/highIndex() use ceilingNode().
+        UnsynchronizedTreeList<Integer> list = new UnsynchronizedTreeList<>();
+        for (int i = 1; i <= 31; i++) { list.add(i); } // enough to trigger rotations
+        TreeList<Integer> sub = list.subList(5, 25); // fromElement=6, toElement=26
+
+        // Remove the fence elements via the subList
+        sub.remove(Integer.valueOf(6));  // lower fence
+        sub.remove(Integer.valueOf(25)); // near upper fence
+        assertTreeInvariants(list);
+
+        // The view boundaries are still correct: [6, 26) in value terms,
+        // but 6 is gone, so first element is 7.
+        assertTrue(sub.contains(7));
+        assertTrue(sub.contains(24));
+        assertFalse(sub.contains(6));
+        assertFalse(sub.contains(26));
+    }
+
+    // ─── SubList — subtreeSize consistency after interleaved mutations ────────
+
+    @Test
+    public void testSubList_SubtreeSizeCorrect_AfterAddAndRemoveViaView() throws Exception {
+        // rankOf() and findByIndex() depend on subtreeSize being correct.
+        // This test verifies the augmentation after a mix of add and remove
+        // operations through the SubList.
+        UnsynchronizedTreeList<Integer> list = new UnsynchronizedTreeList<>();
+        for (int i = 0; i < 50; i += 2) { list.add(i); } // [0, 2, 4, ..., 48]
+        TreeList<Integer> sub = list.subList(5, 20); // [10, 12, ..., 38]
+
+        sub.add(11); sub.add(13); sub.add(15);
+        sub.remove(Integer.valueOf(12));
+        sub.remove(Integer.valueOf(14));
+
+        checkSubtreeSizes(root(list));
+        // Verify index-based access is consistent
+        for (int i = 0; i < sub.size() - 1; i++) {
+            assertTrue((int) sub.get(i) < (int) sub.get(i + 1),
+                    "SubList not sorted at index " + i);
+        }
+    }
 }

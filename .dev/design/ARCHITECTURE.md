@@ -342,6 +342,114 @@ over a single `synchronized` monitor.
 
 ---
 
+### `subList(int, int)` — live view bounded by element values
+
+`UnsynchronizedTreeList.subList(fromIndex, toIndex)` returns a `SubList`, a
+private inner class that implements `TreeList<E>` and extends `AbstractList<E>`.
+The return type is covariant: `TreeList<E>` instead of `List<E>`.
+
+The view is bounded by **element values**, not integer offsets. At creation time,
+the elements at positions `fromIndex` and `toIndex` are captured as `fromElement`
+(inclusive) and `toElement` (exclusive). All subsequent operations are defined in
+terms of "elements in the range `[fromElement, toElement)`".
+
+**Alternative considered:** index-bounded view (like `AbstractList.SubList`),
+tracking `offset` and `size`.
+
+**Reason for rejection:** an index-bounded view is invalidated by any structural
+modification to the parent — even mutations within the view's logical range —
+because indices shift. This forces the view to throw
+`ConcurrentModificationException` on every external mutation, which is overly
+restrictive for a sorted list where `add(E)` may insert anywhere. A
+value-bounded view tolerates external mutations naturally: the range
+`[fromElement, toElement)` is well-defined regardless of index shifts.
+
+---
+
+### `add(E)` on `SubList` — range-checked, following `TreeMap.subMap` convention
+
+`SubList.add(E)` delegates to the parent's `add(E)` if the element falls within
+`[fromElement, toElement)`, and throws `IllegalArgumentException` otherwise.
+
+**Design rationale:** this follows the `SortedMap.subMap()` convention, where
+`put` throws `IllegalArgumentException` for out-of-range keys. The alternative —
+silently ignoring out-of-range adds — would violate the principle of least
+surprise.
+
+---
+
+### Covariant return type `TreeList<E>` for `subList`
+
+The `TreeList` interface declares `subList` with return type `TreeList<E>`
+instead of `List<E>`. The sublist of a sorted, duplicate-free list is itself
+sorted and duplicate-free — it satisfies the `TreeList` contract by Liskov
+Substitution Principle.
+
+**Alternative considered:** returning `List<E>`.
+
+**Reason for rejection:** `List<E>` loses the information that the sublist is
+sorted and duplicate-free. `TreeList<E>` gives the caller access to
+`comparator()` and the type guarantee that the list is sorted. The covariant
+return type is valid in Java (since Java 5).
+
+---
+
+### Fail-fast via `modCount` in `SubList`
+
+`SubList` stores `expectedModCount` at creation time. Each access checks
+`modCount == expectedModCount`. Mutations through the `SubList` (add, remove,
+clear) delegate to the parent, then update `expectedModCount`. External
+mutations to the parent will cause the next `SubList` operation to throw
+`ConcurrentModificationException`.
+
+**Design rationale:** same fail-fast pattern as `AbstractList.SubList` and
+`TreeListIterator`. Lightweight, no per-mutation overhead beyond a single
+integer comparison.
+
+---
+
+### Nested `subList` — flat, not chained
+
+`SubList.subList(fromIndex, toIndex)` creates a new `SubList` with narrowed
+value bounds, directly backed by the root `UnsynchronizedTreeList`. It does
+not create a SubList-on-SubList chain.
+
+**Design rationale:** chaining would add O(depth) overhead per operation, as
+each call would traverse the SubList chain. The flat approach ensures every
+SubList operation is O(log n) relative to the parent tree, regardless of
+nesting depth.
+
+---
+
+### `removeAll` and `retainAll` explicitly overridden in `SubList`
+
+`AbstractList.removeAll()` and `retainAll()` iterate via `iterator().remove()`.
+Since the `SubList` iterator does not support `remove()`, both methods are
+overridden to iterate over the range and call `remove(Object)` directly on
+the parent.
+
+**Design rationale:** same situation and same solution as
+`UnsynchronizedTreeList.removeAll()` / `retainAll()`.
+
+---
+
+### Snapshot-based `subList` in `SynchronizedTreeList`
+
+`SynchronizedTreeList.subList(fromIndex, toIndex)` returns a snapshot: the
+elements in the range are copied into an independent `UnsynchronizedTreeList`
+under a read lock.
+
+**Alternative considered:** a live view wrapping the parent's `SubList` with
+synchronized access.
+
+**Reason for rejection:** a live view would require the returned `TreeList` to
+hold a reference to the parent's `ReentrantReadWriteLock` and acquire it on
+every operation — "lock leaking". The caller could hold references across lock
+boundaries, leading to subtle concurrency bugs. The snapshot approach is safe,
+simple, and consistent with how `SynchronizedTreeList` handles iterators.
+
+---
+
 ## SymmetricMap
 
 ### Interface + two implementations rather than a single class

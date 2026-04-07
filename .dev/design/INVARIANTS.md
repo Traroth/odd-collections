@@ -343,6 +343,52 @@ This invariant must be restored after every rotation and structural change:
     //@         + (n.left  != null ? n.left.subtreeSize  : 0)
     //@         + (n.right != null ? n.right.subtreeSize : 0));
 
+### SubList (live view)
+
+The `SubList` inner class of `UnsynchronizedTreeList` is a live view bounded
+by element values. It does not maintain its own data structure — it delegates
+to the parent tree.
+
+#### Value bounds
+
+The view contains all elements `e` in the parent list such that:
+
+    //@ invariant !fromStart ==>
+    //@     (\forall int i; 0 <= i && i < size(); compare(fromElement, get(i)) <= 0);
+    //@ invariant !toEnd ==>
+    //@     (\forall int i; 0 <= i && i < size(); compare(get(i), toElement) < 0);
+
+The bounds are immutable after construction. `fromElement` is inclusive,
+`toElement` is exclusive. If `fromStart` is true, there is no lower bound.
+If `toEnd` is true, there is no upper bound.
+
+#### Inherited invariants
+
+The SubList inherits the TreeList invariants from the parent:
+
+    //@ invariant size() >= 0;
+    //@ invariant (\forall int i; 0 <= i && i < size(); get(i) != null);
+    //@ invariant (\forall int i; 0 <= i && i < size() - 1;
+    //@     compare(get(i), get(i + 1)) < 0);
+
+These are guaranteed by the parent tree — the SubList cannot break them
+because all mutations delegate to the parent.
+
+#### Fail-fast consistency
+
+    expectedModCount == modCount
+
+Must hold at the start of every SubList operation. Broken by external
+modifications to the parent (i.e. modifications not through this SubList).
+Mutations through the SubList update `expectedModCount` after delegating.
+
+#### Fence independence
+
+The bound values `fromElement` and `toElement` are stored as element values,
+not as node references. Even if a fence element is removed from the parent
+tree, the comparison `compare(fromElement, e)` remains well-defined. The
+view continues to function correctly with narrowed or empty content.
+
 ------------------------------------------------------------------------
 
 ## MultiMap

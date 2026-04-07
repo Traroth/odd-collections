@@ -59,8 +59,9 @@ licensed under the GNU Lesser General Public License v3.
 - `fr.dufrenoy.util.TreeList<E>` — a sorted list backed by a red-black tree,
   containing no duplicate elements. Elements are ordered by a `Comparator`
   or their natural ordering. Position-dependent write operations (`add(int, E)`,
-  `set`, `subList`, etc.) are unsupported since insertion order is determined
-  by sort order. Null elements are forbidden; duplicates are silently rejected.
+  `set`) are unsupported since insertion order is determined by sort order.
+  `subList(int, int)` returns a live view bounded by element values.
+  Null elements are forbidden; duplicates are silently rejected.
   Two implementations are provided:
   - `UnsynchronizedTreeList` — not thread-safe.
   - `SynchronizedTreeList` — thread-safe, protected by a

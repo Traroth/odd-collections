@@ -49,8 +49,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * {@link java.util.ConcurrentModificationException}.
  *
  * <p>The unsupported operations of {@link TreeList} ({@link #add(int, Object)},
- * {@link #set(int, Object)}, {@link #subList(int, int)}) throw
- * {@link UnsupportedOperationException} as documented.
+ * {@link #set(int, Object)}) throw {@link UnsupportedOperationException} as
+ * documented.
+ *
+ * <p>{@link #subList(int, int)} returns a snapshot-based {@link TreeList}:
+ * a copy of the elements in the specified range is taken under a read lock.
+ * The returned list is an independent {@link UnsynchronizedTreeList} — it is
+ * not a live view and modifications do not affect the original list.
  *
  * @param <E> the type of elements maintained by this list
  * @author Dufrenoy
@@ -345,13 +350,37 @@ public class SynchronizedTreeList<E> implements TreeList<E> {
     }
 
     /**
-     * {@inheritDoc}
+     * Returns a snapshot of the specified range as an independent
+     * {@link UnsynchronizedTreeList}. The snapshot is taken under a read lock
+     * and is not a live view — modifications to the returned list do not
+     * affect this list, and vice versa.
      *
-     * @throws UnsupportedOperationException always
+     * <p>This is consistent with the snapshot-based iterator pattern used
+     * throughout {@code SynchronizedTreeList}.
+     *
+     * @param fromIndex low endpoint (inclusive) of the subList
+     * @param toIndex   high endpoint (exclusive) of the subList
+     * @return a snapshot {@code TreeList} containing the elements in the range
+     * @throws IndexOutOfBoundsException if {@code fromIndex < 0} or
+     *         {@code toIndex > size()}
+     * @throws IllegalArgumentException  if {@code fromIndex > toIndex}
      */
+    //@ requires fromIndex >= 0 && toIndex <= size();
+    //@ requires fromIndex <= toIndex;
     @Override
-    public List<E> subList(int fromIndex, int toIndex) {
-        throw new UnsupportedOperationException();
+    public TreeList<E> subList(int fromIndex, int toIndex) {
+        readLock.lock();
+        try {
+            List<E> view = delegate.subList(fromIndex, toIndex);
+            UnsynchronizedTreeList<E> snapshot =
+                    new UnsynchronizedTreeList<>(delegate.comparator().orElse(null));
+            for (int i = 0; i < view.size(); i++) {
+                snapshot.add(view.get(i));
+            }
+            return snapshot;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     // ─── List — queries ───────────────────────────────────────────────────────────
