@@ -20,6 +20,7 @@
  * License along with this library; if not, see
  * <https://www.gnu.org/licenses/>.
  */
+
 package fr.dufrenoy.util;
 
 import java.util.AbstractMap;
@@ -131,10 +132,12 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
     //@ requires loadFactor > 0 && !Float.isNaN(loadFactor);
     //@ ensures size() == 0;
     public UnsynchronizedSymmetricMap(int initialCapacity, float loadFactor) {
-        if (initialCapacity < 1)
+        if (initialCapacity < 1) {
             throw new IllegalArgumentException("initialCapacity must be at least 1");
-        if (loadFactor <= 0 || Float.isNaN(loadFactor))
+        }
+        if (loadFactor <= 0 || Float.isNaN(loadFactor)) {
             throw new IllegalArgumentException("loadFactor must be positive");
+        }
         this.loadFactor = loadFactor;
         this.table = newTable(initialCapacity);
         this.threshold = (int) (initialCapacity * loadFactor);
@@ -204,16 +207,21 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         Entry<K, V> existingByKey = getEntry(key);
 
         // Same exact pair — no-op
-        if (existingByKey != null && Objects.equals(existingByKey.value, value))
+        if (existingByKey != null && Objects.equals(existingByKey.value, value)) {
             return value;
+        }
 
         // Remove any existing entry with the same value (to maintain bijectivity)
         Entry<K, V> existingByValue = getEntryByValue(value);
-        if (existingByValue != null) removeEntry(existingByValue);
+        if (existingByValue != null) {
+            removeEntry(existingByValue);
+        }
 
         // Remove any existing entry with the same key
         V oldValue = existingByKey == null ? null : existingByKey.value;
-        if (existingByKey != null) removeEntry(existingByKey);
+        if (existingByKey != null) {
+            removeEntry(existingByKey);
+        }
 
         insertEntry(key, value);
         return oldValue;
@@ -232,10 +240,12 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
     //@ ensures size() == \old(size()) + 1;
     @Override
     public void safePut(K key, V value) {
-        if (containsKey(key))
+        if (containsKey(key)) {
             throw new IllegalArgumentException("Key already exists: " + key);
-        if (containsValue(value))
+        }
+        if (containsValue(value)) {
             throw new IllegalArgumentException("Value already exists: " + value);
+        }
         insertEntry(key, value);
     }
 
@@ -248,7 +258,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
     @Override
     public V remove(Object key) {
         Entry<K, V> e = getEntry(key);
-        if (e == null) return null;
+        if (e == null) {
+            return null;
+        }
         removeEntry(e);
         return e.value;
     }
@@ -268,7 +280,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
     @Override
     public Optional<K> removeByValue(Object value) {
         Entry<K, V> e = getEntryByValue(value);
-        if (e == null) return Optional.empty();
+        if (e == null) {
+            return Optional.empty();
+        }
         removeEntry(e);
         return Optional.of(e.key);
     }
@@ -356,7 +370,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         int idx = keyIndex(Objects.hashCode(key));
         Entry<K, V> e = table[idx].firstByKey;
         while (e != null) {
-            if (Objects.equals(e.key, key)) return e;
+            if (Objects.equals(e.key, key)) {
+                return e;
+            }
             e = e.nextByKey;
         }
         return null;
@@ -366,7 +382,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         int idx = valueIndex(Objects.hashCode(value));
         Entry<K, V> e = table[idx].firstByValue;
         while (e != null) {
-            if (Objects.equals(e.value, value)) return e;
+            if (Objects.equals(e.value, value)) {
+                return e;
+            }
             e = e.nextByValue;
         }
         return null;
@@ -382,7 +400,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      * @param value the value
      */
     void insertEntry(K key, V value) {
-        if (size >= threshold) resize();
+        if (size >= threshold) {
+            resize();
+        }
 
         int kHash = Objects.hashCode(key);
         int vHash = Objects.hashCode(value);
@@ -413,8 +433,11 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         Entry<K, V> cur = table[kIdx].firstByKey;
         while (cur != null) {
             if (cur == entry) {
-                if (prev == null) table[kIdx].firstByKey = cur.nextByKey;
-                else prev.nextByKey = cur.nextByKey;
+                if (prev == null) {
+                    table[kIdx].firstByKey = cur.nextByKey;
+                } else {
+                    prev.nextByKey = cur.nextByKey;
+                }
                 break;
             }
             prev = cur;
@@ -427,8 +450,11 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         cur = table[vIdx].firstByValue;
         while (cur != null) {
             if (cur == entry) {
-                if (prev == null) table[vIdx].firstByValue = cur.nextByValue;
-                else prev.nextByValue = cur.nextByValue;
+                if (prev == null) {
+                    table[vIdx].firstByValue = cur.nextByValue;
+                } else {
+                    prev.nextByValue = cur.nextByValue;
+                }
                 break;
             }
             prev = cur;
@@ -509,16 +535,22 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
 
         @Override
         public boolean equals(Object o) {
-            if (!(o instanceof Map.Entry)) return false;
+            if (!(o instanceof Map.Entry)) {
+                return false;
+            }
             Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
             return Objects.equals(key, e.getKey()) && Objects.equals(value, e.getValue());
         }
 
         @Override
-        public K getKey() { return key; }
+        public K getKey() {
+            return key;
+        }
 
         @Override
-        public V getValue() { return value; }
+        public V getValue() {
+            return value;
+        }
 
         /**
          * Not supported on raw entries — use the entry obtained from
@@ -538,10 +570,14 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
     private class KeySetView extends AbstractSet<K> {
 
         @Override
-        public int size() { return UnsynchronizedSymmetricMap.this.size(); }
+        public int size() {
+            return UnsynchronizedSymmetricMap.this.size();
+        }
 
         @Override
-        public boolean contains(Object o) { return containsKey(o); }
+        public boolean contains(Object o) {
+            return containsKey(o);
+        }
 
         @Override
         public boolean remove(Object o) {
@@ -549,7 +585,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         }
 
         @Override
-        public void clear() { UnsynchronizedSymmetricMap.this.clear(); }
+        public void clear() {
+            UnsynchronizedSymmetricMap.this.clear();
+        }
 
         @Override
         public Iterator<K> iterator() {
@@ -561,18 +599,24 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
                 private Entry<K, V> advanceToNext() {
                     while (bucketIndex < table.length) {
                         Entry<K, V> e = table[bucketIndex].firstByKey;
-                        if (e != null) return e;
+                        if (e != null) {
+                            return e;
+                        }
                         bucketIndex++;
                     }
                     return null;
                 }
 
                 @Override
-                public boolean hasNext() { return next != null; }
+                public boolean hasNext() {
+                    return next != null;
+                }
 
                 @Override
                 public K next() {
-                    if (next == null) throw new NoSuchElementException();
+                    if (next == null) {
+                        throw new NoSuchElementException();
+                    }
                     current = next;
                     if (current.nextByKey != null) {
                         next = current.nextByKey;
@@ -585,7 +629,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
 
                 @Override
                 public void remove() {
-                    if (current == null) throw new IllegalStateException();
+                    if (current == null) {
+                        throw new IllegalStateException();
+                    }
                     removeEntry(current);
                     current = null;
                 }
@@ -598,10 +644,14 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
     private class ValueSetView extends AbstractSet<V> {
 
         @Override
-        public int size() { return UnsynchronizedSymmetricMap.this.size(); }
+        public int size() {
+            return UnsynchronizedSymmetricMap.this.size();
+        }
 
         @Override
-        public boolean contains(Object o) { return containsValue(o); }
+        public boolean contains(Object o) {
+            return containsValue(o);
+        }
 
         @Override
         public boolean remove(Object o) {
@@ -609,7 +659,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
         }
 
         @Override
-        public void clear() { UnsynchronizedSymmetricMap.this.clear(); }
+        public void clear() {
+            UnsynchronizedSymmetricMap.this.clear();
+        }
 
         @Override
         public Iterator<V> iterator() {
@@ -621,18 +673,24 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
                 private Entry<K, V> advanceToNext() {
                     while (bucketIndex < table.length) {
                         Entry<K, V> e = table[bucketIndex].firstByKey;
-                        if (e != null) return e;
+                        if (e != null) {
+                            return e;
+                        }
                         bucketIndex++;
                     }
                     return null;
                 }
 
                 @Override
-                public boolean hasNext() { return next != null; }
+                public boolean hasNext() {
+                    return next != null;
+                }
 
                 @Override
                 public V next() {
-                    if (next == null) throw new NoSuchElementException();
+                    if (next == null) {
+                        throw new NoSuchElementException();
+                    }
                     current = next;
                     if (current.nextByKey != null) {
                         next = current.nextByKey;
@@ -645,7 +703,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
 
                 @Override
                 public void remove() {
-                    if (current == null) throw new IllegalStateException();
+                    if (current == null) {
+                        throw new IllegalStateException();
+                    }
                     removeEntry(current);
                     current = null;
                 }
@@ -658,11 +718,15 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
     private class EntrySetView extends AbstractSet<Map.Entry<K, V>> {
 
         @Override
-        public int size() { return UnsynchronizedSymmetricMap.this.size(); }
+        public int size() {
+            return UnsynchronizedSymmetricMap.this.size();
+        }
 
         @Override
         public boolean contains(Object o) {
-            if (!(o instanceof Map.Entry)) return false;
+            if (!(o instanceof Map.Entry)) {
+                return false;
+            }
             Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
             Entry<K, V> found = getEntry(e.getKey());
             return found != null && Objects.equals(found.value, e.getValue());
@@ -670,13 +734,17 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
 
         @Override
         public boolean remove(Object o) {
-            if (!(o instanceof Map.Entry)) return false;
+            if (!(o instanceof Map.Entry)) {
+                return false;
+            }
             Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
             return UnsynchronizedSymmetricMap.this.remove(e.getKey()) != null;
         }
 
         @Override
-        public void clear() { UnsynchronizedSymmetricMap.this.clear(); }
+        public void clear() {
+            UnsynchronizedSymmetricMap.this.clear();
+        }
 
         @Override
         public Iterator<Map.Entry<K, V>> iterator() {
@@ -688,18 +756,24 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
                 private Entry<K, V> advanceToNext() {
                     while (bucketIndex < table.length) {
                         Entry<K, V> e = table[bucketIndex].firstByKey;
-                        if (e != null) return e;
+                        if (e != null) {
+                            return e;
+                        }
                         bucketIndex++;
                     }
                     return null;
                 }
 
                 @Override
-                public boolean hasNext() { return next != null; }
+                public boolean hasNext() {
+                    return next != null;
+                }
 
                 @Override
                 public Map.Entry<K, V> next() {
-                    if (next == null) throw new NoSuchElementException();
+                    if (next == null) {
+                        throw new NoSuchElementException();
+                    }
                     current = next;
                     if (current.nextByKey != null) {
                         next = current.nextByKey;
@@ -711,10 +785,14 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
                     final Entry<K, V> snapshot = current;
                     return new Map.Entry<K, V>() {
                         @Override
-                        public K getKey() { return snapshot.key; }
+                        public K getKey() {
+                            return snapshot.key;
+                        }
 
                         @Override
-                        public V getValue() { return snapshot.value; }
+                        public V getValue() {
+                            return snapshot.value;
+                        }
 
                         @Override
                         public V setValue(V newValue) {
@@ -724,7 +802,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
                         }
 
                         @Override
-                        public int hashCode() { return snapshot.hashCode(); }
+                        public int hashCode() {
+                            return snapshot.hashCode();
+                        }
 
                         @Override
                         public boolean equals(Object o) {
@@ -740,7 +820,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
 
                 @Override
                 public void remove() {
-                    if (current == null) throw new IllegalStateException();
+                    if (current == null) {
+                        throw new IllegalStateException();
+                    }
                     removeEntry(current);
                     current = null;
                 }

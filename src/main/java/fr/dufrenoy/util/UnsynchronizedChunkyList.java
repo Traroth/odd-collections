@@ -1,6 +1,9 @@
-package fr.dufrenoy.util;
 /*
- * ChunkyList - An unrolled linked list implementation of java.util.List
+ * UnsynchronizedChunkyList.java
+ *
+ * Version 1.0
+ *
+ * odd-collections - A collection of unconventional Java data structures
  * Copyright (C) 2026  Dufrenoy
  *
  * This library is free software; you can redistribute it and/or
@@ -17,7 +20,15 @@ package fr.dufrenoy.util;
  * License along with this library; if not, see
  * <https://www.gnu.org/licenses/>.
  */
-import java.util.*;
+
+package fr.dufrenoy.util;
+
+import java.util.AbstractList;
+import java.util.Collection;
+import java.util.ConcurrentModificationException;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Spliterator;
 
 /**
  * An unrolled linked list implementation of {@link ChunkyList},
@@ -90,7 +101,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
     //@ ensures getCurrentGrowingStrategy() == GrowingStrategy.OVERFLOW_STRATEGY;
     //@ ensures getCurrentShrinkingStrategy() == ShrinkingStrategy.UNDERFLOW_STRATEGY;
     public UnsynchronizedChunkyList(int chunkSize) {
-        if (chunkSize < 1) throw new IllegalArgumentException("chunkSize must be at least 1");
+        if (chunkSize < 1) {
+            throw new IllegalArgumentException("chunkSize must be at least 1");
+        }
         this.chunkSize = chunkSize;
         this.size = 0;
         this.currentGrowingStrategy = GrowingStrategy.OVERFLOW_STRATEGY;
@@ -284,7 +297,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
     //@ ensures \result >= 0 ==> get(\result).equals(o);
     @Override
     public int indexOf(Object o) {
-        if (isEmpty()) return -1;
+        if (isEmpty()) {
+            return -1;
+        }
         int index = 0;
         Chunk current = firstChunk;
         while (current != null) {
@@ -305,7 +320,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
     //@ ensures \result >= 0 ==> get(\result).equals(o);
     @Override
     public int lastIndexOf(Object o) {
-        if (isEmpty()) return -1;
+        if (isEmpty()) {
+            return -1;
+        }
         int index = size - 1;
         Chunk current = lastChunk;
         while (current != null) {
@@ -348,7 +365,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
     //@ ensures size() == \old(size());
     @Override
     public E set(int index, E element) {
-        if (element == null) throw new IllegalArgumentException("null elements not allowed");
+        if (element == null) {
+            throw new IllegalArgumentException("null elements not allowed");
+        }
         if (index < 0 || index >= size) {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
         }
@@ -375,7 +394,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
     //@ ensures get(size() - 1).equals(e);
     @Override
     public boolean add(E e) {
-        if (e == null) throw new IllegalArgumentException("null elements not allowed");
+        if (e == null) {
+            throw new IllegalArgumentException("null elements not allowed");
+        }
         if (lastChunk == null) {
             add(e, addEmptyChunkAfter(null), 0);
         } else if (lastChunk.nbElements < chunkSize) {
@@ -408,7 +429,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
     public boolean addAll(Collection<? extends E> c) {
         Object[] incoming = c.toArray();
         int n = incoming.length;
-        if (n == 0) return false;
+        if (n == 0) {
+            return false;
+        }
 
         // Validate all elements before modifying the list
         for (int i = 0; i < n; i++) {
@@ -450,7 +473,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
     //@ ensures get(index) == element;
     @Override
     public void add(int index, E element) {
-        if (element == null) throw new IllegalArgumentException("null elements not allowed");
+        if (element == null) {
+            throw new IllegalArgumentException("null elements not allowed");
+        }
         if (index < 0 || index > size) {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
         }
@@ -505,7 +530,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
     //@ ensures !\old(contains(o)) ==> size() == \old(size());
     @Override
     public boolean remove(Object o) {
-        if (isEmpty()) return false;
+        if (isEmpty()) {
+            return false;
+        }
         Chunk current = firstChunk;
         while (current != null) {
             for (int i = 0; i < current.nbElements; i++) {
@@ -557,7 +584,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
     //@ ensures (\forall int i; 0 <= i && i < size(); get(i).equals(\old(get(i))));
     @Override
     public void reorganize() {
-        if (isEmpty()) return;
+        if (isEmpty()) {
+            return;
+        }
         Chunk newFirst = null;
         Chunk newLast = null;
         Chunk current = firstChunk;
@@ -660,20 +689,30 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
                     handleFullChunk(next, nextOverflow);
                 }
                 break;
+            default:
+                break;
         }
     }
 
     private void removeChunk(Chunk chunk) {
-        if (chunk.previousChunk != null) chunk.previousChunk.nextChunk = chunk.nextChunk;
-        else firstChunk = chunk.nextChunk;
-        if (chunk.nextChunk != null) chunk.nextChunk.previousChunk = chunk.previousChunk;
-        else lastChunk = chunk.previousChunk;
+        if (chunk.previousChunk != null) {
+            chunk.previousChunk.nextChunk = chunk.nextChunk;
+        } else {
+            firstChunk = chunk.nextChunk;
+        }
+        if (chunk.nextChunk != null) {
+            chunk.nextChunk.previousChunk = chunk.previousChunk;
+        } else {
+            lastChunk = chunk.previousChunk;
+        }
     }
 
     private void handleShrunkChunk(Chunk chunk) {
         switch (currentShrinkingStrategy) {
             case DISAPPEAR_STRATEGY:
-                if (chunk.nbElements == 0) removeChunk(chunk);
+                if (chunk.nbElements == 0) {
+                    removeChunk(chunk);
+                }
                 break;
             case UNDERFLOW_STRATEGY:
                 if (chunk.nextChunk != null && chunk.nextChunk.nbElements > 0) {
@@ -685,7 +724,11 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
                     chunk.nextChunk.elements[--chunk.nextChunk.nbElements] = null;
                     handleShrunkChunk(chunk.nextChunk);
                 }
-                if (chunk.nbElements == 0) removeChunk(chunk);
+                if (chunk.nbElements == 0) {
+                    removeChunk(chunk);
+                }
+                break;
+            default:
                 break;
         }
     }
@@ -779,7 +822,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
 
         @Override
         public boolean tryAdvance(java.util.function.Consumer<? super E> action) {
-            if (remaining <= 0) return false;
+            if (remaining <= 0) {
+                return false;
+            }
             action.accept(currentChunk.elements[currentIndex++]);
             remaining--;
             if (currentIndex >= currentChunk.nbElements) {
@@ -791,7 +836,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
 
         @Override
         public Spliterator<E> trySplit() {
-            if (currentChunk == null || currentChunk.nextChunk == endChunk) return null;
+            if (currentChunk == null || currentChunk.nextChunk == endChunk) {
+                return null;
+            }
 
             int chunkCount = 0;
             Chunk c = currentChunk;
@@ -799,7 +846,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
                 chunkCount++;
                 c = c.nextChunk;
             }
-            if (chunkCount < 2) return null;
+            if (chunkCount < 2) {
+                return null;
+            }
 
             int half = chunkCount / 2;
             Chunk mid = currentChunk;

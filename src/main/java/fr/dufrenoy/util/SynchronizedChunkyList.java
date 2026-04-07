@@ -1,5 +1,9 @@
-package fr.dufrenoy.util;/*
- * ChunkyList - An unrolled linked list implementation of java.util.List
+/*
+ * SynchronizedChunkyList.java
+ *
+ * Version 1.0
+ *
+ * odd-collections - A collection of unconventional Java data structures
  * Copyright (C) 2026  Dufrenoy
  *
  * This library is free software; you can redistribute it and/or
@@ -16,7 +20,15 @@ package fr.dufrenoy.util;/*
  * License along with this library; if not, see
  * <https://www.gnu.org/licenses/>.
  */
-import java.util.*;
+
+package fr.dufrenoy.util;
+
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Spliterator;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -343,7 +355,9 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
     //@ ensures size() == \old(size());
     @Override
     public E set(int index, E element) {
-        if (element == null) throw new IllegalArgumentException("null elements not allowed");
+        if (element == null) {
+            throw new IllegalArgumentException("null elements not allowed");
+        }
         writeLock.lock();
         try {
             return inner.set(index, element);
@@ -690,7 +704,9 @@ public class SynchronizedChunkyList<E> implements ChunkyList<E> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
+        if (this == o) {
+            return true;
+        }
         readLock.lock();
         try {
             return inner.equals(o);

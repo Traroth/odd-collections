@@ -20,6 +20,7 @@
  * License along with this library; if not, see
  * <https://www.gnu.org/licenses/>.
  */
+
 package fr.dufrenoy.util;
 
 import java.util.AbstractSet;
@@ -427,7 +428,9 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
+        if (this == o) {
+            return true;
+        }
         readLock.lock();
         try {
             return inner.equals(o);
@@ -479,10 +482,14 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
     private class SnapshotKeySetView extends AbstractSet<K> {
 
         @Override
-        public int size() { return SynchronizedSymmetricMap.this.size(); }
+        public int size() {
+            return SynchronizedSymmetricMap.this.size();
+        }
 
         @Override
-        public boolean contains(Object o) { return containsKey(o); }
+        public boolean contains(Object o) {
+            return containsKey(o);
+        }
 
         @Override
         public boolean remove(Object o) {
@@ -490,7 +497,9 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
 
         @Override
-        public void clear() { SynchronizedSymmetricMap.this.clear(); }
+        public void clear() {
+            SynchronizedSymmetricMap.this.clear();
+        }
 
         @Override
         public Iterator<K> iterator() {
@@ -499,10 +508,14 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
                 private final Iterator<Map.Entry<K, V>> it = snap.iterator();
 
                 @Override
-                public boolean hasNext() { return it.hasNext(); }
+                public boolean hasNext() {
+                    return it.hasNext();
+                }
 
                 @Override
-                public K next() { return it.next().getKey(); }
+                public K next() {
+                    return it.next().getKey();
+                }
             };
         }
     }
@@ -512,10 +525,14 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
     private class SnapshotValueSetView extends AbstractSet<V> {
 
         @Override
-        public int size() { return SynchronizedSymmetricMap.this.size(); }
+        public int size() {
+            return SynchronizedSymmetricMap.this.size();
+        }
 
         @Override
-        public boolean contains(Object o) { return containsValue(o); }
+        public boolean contains(Object o) {
+            return containsValue(o);
+        }
 
         @Override
         public boolean remove(Object o) {
@@ -523,7 +540,9 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
 
         @Override
-        public void clear() { SynchronizedSymmetricMap.this.clear(); }
+        public void clear() {
+            SynchronizedSymmetricMap.this.clear();
+        }
 
         @Override
         public Iterator<V> iterator() {
@@ -532,10 +551,14 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
                 private final Iterator<Map.Entry<K, V>> it = snap.iterator();
 
                 @Override
-                public boolean hasNext() { return it.hasNext(); }
+                public boolean hasNext() {
+                    return it.hasNext();
+                }
 
                 @Override
-                public V next() { return it.next().getValue(); }
+                public V next() {
+                    return it.next().getValue();
+                }
             };
         }
     }
@@ -545,15 +568,21 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
     private class SnapshotEntrySetView extends AbstractSet<Map.Entry<K, V>> {
 
         @Override
-        public int size() { return SynchronizedSymmetricMap.this.size(); }
+        public int size() {
+            return SynchronizedSymmetricMap.this.size();
+        }
 
         @Override
         public boolean contains(Object o) {
-            if (!(o instanceof Map.Entry)) return false;
+            if (!(o instanceof Map.Entry)) {
+                return false;
+            }
             Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
             readLock.lock();
             try {
-                if (!inner.containsKey(e.getKey())) return false;
+                if (!inner.containsKey(e.getKey())) {
+                    return false;
+                }
                 return Objects.equals(inner.get(e.getKey()), e.getValue());
             } finally {
                 readLock.unlock();
@@ -562,13 +591,17 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
 
         @Override
         public boolean remove(Object o) {
-            if (!(o instanceof Map.Entry)) return false;
+            if (!(o instanceof Map.Entry)) {
+                return false;
+            }
             Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
             return SynchronizedSymmetricMap.this.remove(e.getKey()) != null;
         }
 
         @Override
-        public void clear() { SynchronizedSymmetricMap.this.clear(); }
+        public void clear() {
+            SynchronizedSymmetricMap.this.clear();
+        }
 
         @Override
         public Iterator<Map.Entry<K, V>> iterator() {
@@ -591,10 +624,14 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
 
         @Override
-        public K getKey() { return innerEntry.getKey(); }
+        public K getKey() {
+            return innerEntry.getKey();
+        }
 
         @Override
-        public V getValue() { return innerEntry.getValue(); }
+        public V getValue() {
+            return innerEntry.getValue();
+        }
 
         @Override
         public V setValue(V value) {
@@ -602,9 +639,13 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         }
 
         @Override
-        public boolean equals(Object o) { return innerEntry.equals(o); }
+        public boolean equals(Object o) {
+            return innerEntry.equals(o);
+        }
 
         @Override
-        public int hashCode() { return innerEntry.hashCode(); }
+        public int hashCode() {
+            return innerEntry.hashCode();
+        }
     }
 }

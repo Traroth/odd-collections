@@ -20,6 +20,7 @@
  * License along with this library; if not, see
  * <https://www.gnu.org/licenses/>.
  */
+
 package fr.dufrenoy.util;
 
 import java.util.Comparator;

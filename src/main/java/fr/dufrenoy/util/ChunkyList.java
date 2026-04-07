@@ -1,5 +1,9 @@
-package fr.dufrenoy.util;/*
- * ChunkyList - An unrolled linked list implementation of java.util.List
+/*
+ * ChunkyList.java
+ *
+ * Version 1.0
+ *
+ * odd-collections - A collection of unconventional Java data structures
  * Copyright (C) 2026  Dufrenoy
  *
  * This library is free software; you can redistribute it and/or
@@ -16,6 +20,9 @@ package fr.dufrenoy.util;/*
  * License along with this library; if not, see
  * <https://www.gnu.org/licenses/>.
  */
+
+package fr.dufrenoy.util;
+
 import java.util.List;
 
 /**
@@ -36,8 +43,6 @@ import java.util.List;
  * @param <E> the type of elements in this list
  */
 public interface ChunkyList<E> extends List<E> {
-
-    // ─── Enums ────────────────────────────────────────────────────────────────
 
     // ─── Enums ────────────────────────────────────────────────────────────────
 

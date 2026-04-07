@@ -44,11 +44,6 @@ of each session.
 
 ## ChunkyList
 
-- [ ] Bring `ChunkyList` interface into compliance with Oracle Java guidelines
-  (beginning file comment, `package`/comment order, explicit imports)
-- [ ] Fix remaining Checkstyle warnings in `UnsynchronizedChunkyList` and
-  `SynchronizedChunkyList` (`NeedBraces`, `MissingSwitchDefault`, wildcard
-  imports, `EmptyLineSeparator`, unused imports)
 - [ ] Implement `addAll(int index, Collection<? extends E> c)` — optimized
   insertion at arbitrary index using `toArray` + `System.arraycopy` by chunks
 - [ ] Implement `removeAll(Collection<?> c)` — optimized single-pass with
@@ -116,6 +111,9 @@ Each item should be benchmarked before and after to confirm impact.
 
 ### Project-wide
 
+- [x] Fix all Checkstyle warnings across the entire codebase — `NeedBraces`,
+  `LeftCurly`, `EmptyLineSeparator`, `NewlineAtEndOfFile`, `AvoidStarImport`,
+  `UnusedImports`, `MissingSwitchDefault` (9 source files, 0 warnings remaining)
 - [x] Migrate baseline from Java 9 to Java 11
 - [x] Update README requirements section (Java 11 baseline, Java 21 variant)
 - [x] Formalize AI workflow: `CONTEXT.md`, `WORKFLOW.md`, `JAVA_STANDARDS.md`,
@@ -173,6 +171,11 @@ Each item should be benchmarked before and after to confirm impact.
 
 ### ChunkyList
 
+- [x] Bring `ChunkyList` interface into compliance with Oracle Java guidelines
+  (file header before `package`, explicit imports)
+- [x] Fix all Checkstyle warnings in `ChunkyList`, `UnsynchronizedChunkyList`,
+  and `SynchronizedChunkyList` (`NeedBraces`, `MissingSwitchDefault`, wildcard
+  imports, `EmptyLineSeparator`, unused imports)
 - [x] Initial implementation of `UnsynchronizedChunkyList` and
   `SynchronizedChunkyList`
 - [x] Configurable growing and shrinking strategies

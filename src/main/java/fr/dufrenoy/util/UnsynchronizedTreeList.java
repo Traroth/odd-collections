@@ -20,6 +20,7 @@
  * License along with this library; if not, see
  * <https://www.gnu.org/licenses/>.
  */
+
 package fr.dufrenoy.util;
 
 import java.util.AbstractList;
@@ -27,7 +28,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -730,11 +730,27 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
 
     // ─── Private helpers — null-safe node accessors ───────────────────────────────
 
-    private static <X> boolean colorOf(Node<X> p)              { return p == null ? BLACK : p.color; }
-    private static <X> Node<X>  parentOf(Node<X> p)             { return p == null ? null  : p.parent; }
-    private static <X> Node<X>  leftOf(Node<X> p)               { return p == null ? null  : p.left; }
-    private static <X> Node<X>  rightOf(Node<X> p)              { return p == null ? null  : p.right; }
-    private static <X> void     setColor(Node<X> p, boolean c)  { if (p != null) p.color = c; }
+    private static <X> boolean colorOf(Node<X> p) {
+        return p == null ? BLACK : p.color;
+    }
+
+    private static <X> Node<X> parentOf(Node<X> p) {
+        return p == null ? null : p.parent;
+    }
+
+    private static <X> Node<X> leftOf(Node<X> p) {
+        return p == null ? null : p.left;
+    }
+
+    private static <X> Node<X> rightOf(Node<X> p) {
+        return p == null ? null : p.right;
+    }
+
+    private static <X> void setColor(Node<X> p, boolean c) {
+        if (p != null) {
+            p.color = c;
+        }
+    }
 
     // ─── Private helpers — tree rotations ────────────────────────────────────────
 
