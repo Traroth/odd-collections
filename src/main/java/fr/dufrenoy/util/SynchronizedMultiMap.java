@@ -23,6 +23,9 @@
 
 package fr.dufrenoy.util;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -63,7 +66,9 @@ import java.util.function.Supplier;
  * @see MultiMap
  * @see UnsynchronizedMultiMap
  */
-public class SynchronizedMultiMap<K, V> implements MultiMap<K, V> {
+public class SynchronizedMultiMap<K, V> implements MultiMap<K, V>, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /*@
       @ public invariant size() >= 0;
@@ -76,9 +81,9 @@ public class SynchronizedMultiMap<K, V> implements MultiMap<K, V> {
     // ─── Instance fields ─────────────────────────────────────────────────────
 
     private final UnsynchronizedMultiMap<K, V> inner;
-    private final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
-    private final ReentrantReadWriteLock.ReadLock readLock = rwl.readLock();
-    private final ReentrantReadWriteLock.WriteLock writeLock = rwl.writeLock();
+    private transient ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
+    private transient ReentrantReadWriteLock.ReadLock readLock = rwl.readLock();
+    private transient ReentrantReadWriteLock.WriteLock writeLock = rwl.writeLock();
 
     // ─── Constructors ────────────────────────────────────────────────────────
 
@@ -334,5 +339,14 @@ public class SynchronizedMultiMap<K, V> implements MultiMap<K, V> {
         } finally {
             readLock.unlock();
         }
+    }
+
+    // ─── Serialization ─────────────────────────────────────────────────────
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        rwl = new ReentrantReadWriteLock();
+        readLock = rwl.readLock();
+        writeLock = rwl.writeLock();
     }
 }

@@ -23,6 +23,7 @@
 
 package fr.dufrenoy.util;
 
+import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
@@ -53,7 +54,10 @@ import java.util.Spliterator;
  * guaranteed in a concurrent context without external synchronization.
  * @param <E> the type of elements in this list
  */
-public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements ChunkyList<E> {
+public class UnsynchronizedChunkyList<E> extends AbstractList<E>
+        implements ChunkyList<E>, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /*@
       @ public invariant size() >= 0;
@@ -882,7 +886,9 @@ public class UnsynchronizedChunkyList<E> extends AbstractList<E> implements Chun
 
     // ─── Inner class: Chunk ───────────────────────────────────────────────────
 
-    private class Chunk {
+    private class Chunk implements Serializable {
+
+        private static final long serialVersionUID = 1L;
 
         private E[] elements;
         private int nbElements;

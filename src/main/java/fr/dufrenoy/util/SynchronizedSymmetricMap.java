@@ -23,6 +23,9 @@
 
 package fr.dufrenoy.util;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -55,7 +58,9 @@ import java.util.function.BiFunction;
  * @param <K> the type of keys
  * @param <V> the type of values
  */
-public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
+public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V>, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /*@
       @ public invariant size() >= 0;
@@ -68,9 +73,9 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
     // ─── Instance fields ──────────────────────────────────────────────────────
 
     private final UnsynchronizedSymmetricMap<K, V> inner;
-    private final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
-    private final ReentrantReadWriteLock.ReadLock readLock = rwl.readLock();
-    private final ReentrantReadWriteLock.WriteLock writeLock = rwl.writeLock();
+    private transient ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
+    private transient ReentrantReadWriteLock.ReadLock readLock = rwl.readLock();
+    private transient ReentrantReadWriteLock.WriteLock writeLock = rwl.writeLock();
 
     // ─── Constructors ─────────────────────────────────────────────────────────
 
@@ -647,5 +652,14 @@ public class SynchronizedSymmetricMap<K, V> implements SymmetricMap<K, V> {
         public int hashCode() {
             return innerEntry.hashCode();
         }
+    }
+
+    // ─── Serialization ───────────────────────────────────────────────────────
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        rwl = new ReentrantReadWriteLock();
+        readLock = rwl.readLock();
+        writeLock = rwl.writeLock();
     }
 }

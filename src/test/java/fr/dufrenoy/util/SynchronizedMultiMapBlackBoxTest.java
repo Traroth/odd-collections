@@ -24,6 +24,10 @@ package fr.dufrenoy.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -346,5 +350,34 @@ public class SynchronizedMultiMapBlackBoxTest {
         latch.await(10, TimeUnit.SECONDS);
         executor.shutdown();
         assertEquals(0, errors.get());
+    }
+
+    // ─── Serialization ───────────────────────────────────────────────────────
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSerializationRoundTrip() throws Exception {
+        SynchronizedMultiMap<String, Integer> original = new SynchronizedMultiMap<>();
+        original.put("A", 1);
+        original.put("B", 2);
+        original.put("C", 3);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(original);
+        }
+
+        SynchronizedMultiMap<String, Integer> restored;
+        try (ObjectInputStream ois = new ObjectInputStream(
+                new ByteArrayInputStream(baos.toByteArray()))) {
+            restored = (SynchronizedMultiMap<String, Integer>) ois.readObject();
+        }
+
+        assertEquals(original.size(), restored.size());
+        assertEquals(Integer.valueOf(1), restored.get("A"));
+        assertEquals(Integer.valueOf(2), restored.get("B"));
+
+        restored.put("D", 4);
+        assertEquals(4, restored.size());
     }
 }

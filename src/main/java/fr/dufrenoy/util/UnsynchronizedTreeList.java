@@ -23,6 +23,7 @@
 
 package fr.dufrenoy.util;
 
+import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -55,7 +56,10 @@ import java.util.Optional;
  * @see TreeList
  * @see SynchronizedTreeList
  */
-public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeList<E> {
+public class UnsynchronizedTreeList<E> extends AbstractList<E>
+        implements TreeList<E>, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /*@
       @ public invariant (\forall int i; 0 <= i && i < size() - 1;
@@ -72,7 +76,9 @@ public class UnsynchronizedTreeList<E> extends AbstractList<E> implements TreeLi
 
     // ─── Inner class ──────────────────────────────────────────────────────────────
 
-    private static final class Node<E> {
+    private static final class Node<E> implements Serializable {
+
+        private static final long serialVersionUID = 1L;
         E       element;
         Node<E> left;
         Node<E> right;

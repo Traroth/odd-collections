@@ -23,6 +23,9 @@
 
 package fr.dufrenoy.util;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -64,7 +67,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @see TreeList
  * @see UnsynchronizedTreeList
  */
-public class SynchronizedTreeList<E> implements TreeList<E> {
+public class SynchronizedTreeList<E> implements TreeList<E>, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /*@
       @ public invariant (\forall int i; 0 <= i && i < size() - 1;
@@ -76,10 +81,10 @@ public class SynchronizedTreeList<E> implements TreeList<E> {
 
     // ─── Instance variables ───────────────────────────────────────────────────────
 
-    private final UnsynchronizedTreeList<E>       delegate;
-    private final ReentrantReadWriteLock          lock;
-    private final ReentrantReadWriteLock.ReadLock  readLock;
-    private final ReentrantReadWriteLock.WriteLock writeLock;
+    private final UnsynchronizedTreeList<E>                delegate;
+    private transient ReentrantReadWriteLock               lock;
+    private transient ReentrantReadWriteLock.ReadLock      readLock;
+    private transient ReentrantReadWriteLock.WriteLock     writeLock;
 
     // ─── Constructors ─────────────────────────────────────────────────────────────
 
@@ -556,5 +561,14 @@ public class SynchronizedTreeList<E> implements TreeList<E> {
     @Override
     public ListIterator<E> listIterator() {
         return listIterator(0);
+    }
+
+    // ─── Serialization ───────────────────────────────────────────────────────────
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        lock = new ReentrantReadWriteLock();
+        readLock = lock.readLock();
+        writeLock = lock.writeLock();
     }
 }

@@ -24,6 +24,10 @@ package fr.dufrenoy.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -993,5 +997,61 @@ public class UnsynchronizedTreeListBlackBoxTest {
         list2.add(1);
 
         assertEquals(list1.hashCode(), list2.hashCode());
+    }
+
+    // ─── Serialization ───────────────────────────────────────────────────────
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSerializationRoundTrip() throws Exception {
+        UnsynchronizedTreeList<Integer> original = new UnsynchronizedTreeList<>();
+        original.add(30);
+        original.add(10);
+        original.add(20);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(original);
+        }
+
+        UnsynchronizedTreeList<Integer> restored;
+        try (ObjectInputStream ois = new ObjectInputStream(
+                new ByteArrayInputStream(baos.toByteArray()))) {
+            restored = (UnsynchronizedTreeList<Integer>) ois.readObject();
+        }
+
+        assertEquals(original.size(), restored.size());
+        assertEquals(new ArrayList<>(original), new ArrayList<>(restored));
+        assertEquals(Arrays.asList(10, 20, 30), new ArrayList<>(restored));
+
+        restored.add(15);
+        assertEquals(4, restored.size());
+        assertEquals(Integer.valueOf(15), restored.get(1));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSerializationRoundTrip_WithComparator() throws Exception {
+        UnsynchronizedTreeList<String> original =
+                new UnsynchronizedTreeList<>(Comparator.reverseOrder());
+        original.add("A");
+        original.add("C");
+        original.add("B");
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(original);
+        }
+
+        UnsynchronizedTreeList<String> restored;
+        try (ObjectInputStream ois = new ObjectInputStream(
+                new ByteArrayInputStream(baos.toByteArray()))) {
+            restored = (UnsynchronizedTreeList<String>) ois.readObject();
+        }
+
+        assertEquals(Arrays.asList("C", "B", "A"), new ArrayList<>(restored));
+
+        restored.add("D");
+        assertEquals(Arrays.asList("D", "C", "B", "A"), new ArrayList<>(restored));
     }
 }

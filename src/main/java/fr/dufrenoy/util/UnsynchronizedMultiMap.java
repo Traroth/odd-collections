@@ -23,6 +23,7 @@
 
 package fr.dufrenoy.util;
 
+import java.io.Serializable;
 import java.util.AbstractSet;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
@@ -58,7 +59,9 @@ import java.util.function.Supplier;
  * @see MultiMap
  * @see SynchronizedMultiMap
  */
-public class UnsynchronizedMultiMap<K, V> implements MultiMap<K, V> {
+public class UnsynchronizedMultiMap<K, V> implements MultiMap<K, V>, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /*@
       @ public invariant size() >= 0;

@@ -24,6 +24,10 @@ package fr.dufrenoy.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -584,5 +588,33 @@ public class SynchronizedTreeListBlackBoxTest {
         executor.shutdown();
         assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
         assertFalse(exceptionThrown.get(), "Concurrent reads must not throw exceptions");
+    }
+
+    // ─── Serialization ───────────────────────────────────────────────────────
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSerializationRoundTrip() throws Exception {
+        SynchronizedTreeList<Integer> original = new SynchronizedTreeList<>();
+        original.add(30);
+        original.add(10);
+        original.add(20);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(original);
+        }
+
+        SynchronizedTreeList<Integer> restored;
+        try (ObjectInputStream ois = new ObjectInputStream(
+                new ByteArrayInputStream(baos.toByteArray()))) {
+            restored = (SynchronizedTreeList<Integer>) ois.readObject();
+        }
+
+        assertEquals(original.size(), restored.size());
+        assertEquals(new ArrayList<>(original), new ArrayList<>(restored));
+
+        restored.add(15);
+        assertEquals(4, restored.size());
     }
 }

@@ -45,6 +45,7 @@ This structure offers a middle ground between `ArrayList` and `LinkedList`:
 - Fail-fast iterators (`UnsynchronizedChunkyList`) and fail-safe snapshot iterators (`SynchronizedChunkyList`)
 - Copy constructors and collection constructors
 - `reorganize()` to compact sparsely filled chunks
+- **Serializable** — both `UnsynchronizedChunkyList` and `SynchronizedChunkyList` support Java serialization
 
 #### Strategies
 
@@ -185,6 +186,7 @@ The internal structure is a **single array of buckets**, each holding two indepe
 - **Inverse map** via `inverse()` — returns an independent copy with keys and values swapped
 - `values()` returns `Set<V>` rather than `Collection<V>`, reflecting the uniqueness of values
 - Snapshot-based iterators in `SynchronizedSymmetricMap`
+- **Serializable** — both `UnsynchronizedSymmetricMap` and `SynchronizedSymmetricMap` support Java serialization
 
 #### Usage
 
@@ -260,6 +262,7 @@ Unlike `ArrayList`, insertion and removal are O(log n) with no element shifting.
 - `comparator()` returns the comparator in use, or an empty `Optional` for natural ordering
 - Collection constructors (with or without a `Comparator`), with duplicate elements silently discarded
 - Snapshot-based iterators in `SynchronizedTreeList`
+- **Serializable** — both `UnsynchronizedTreeList` and `SynchronizedTreeList` support Java serialization (including custom `Comparator`)
 - **`subList(int, int)`** returns a live view bounded by element values — mutations through the view are reflected in the parent list and vice versa. Adding an element outside the value range throws `IllegalArgumentException`. In `SynchronizedTreeList`, `subList` returns an independent snapshot instead of a live view, consistent with the snapshot-based iterator pattern.
 - Positional insertion (`add(int, E)`) and replacement (`set`) are not supported and throw `UnsupportedOperationException`
 
@@ -348,6 +351,7 @@ The structure is backed by a `HashMap` at each level — no custom hash table is
 - Null keys and null values are forbidden (`NullPointerException`)
 - Fail-fast iterators (`UnsynchronizedMultiMap`) and snapshot-based iterators (`SynchronizedMultiMap`)
 - Copy constructors from `Map` and `MultiMap`
+- **Serializable** — both `UnsynchronizedMultiMap` and `SynchronizedMultiMap` support Java serialization (including recursive multi-level structures)
 
 #### Nullable `get` — exception to the project Optional convention
 

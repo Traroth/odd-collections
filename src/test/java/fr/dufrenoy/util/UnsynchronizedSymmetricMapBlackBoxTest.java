@@ -24,6 +24,10 @@ package fr.dufrenoy.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -799,6 +803,38 @@ public class UnsynchronizedSymmetricMapBlackBoxTest {
             Integer key = map.getKey(i + 1000).get();
             assertTrue(seenKeys.add(key), "Duplicate key found for value " + (i + 1000));
         }
+    }
+
+    // ─── Serialization ───────────────────────────────────────────────────────
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSerializationRoundTrip() throws Exception {
+        UnsynchronizedSymmetricMap<String, Integer> original = new UnsynchronizedSymmetricMap<>();
+        original.put("A", 1);
+        original.put("B", 2);
+        original.put("C", 3);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(original);
+        }
+
+        UnsynchronizedSymmetricMap<String, Integer> restored;
+        try (ObjectInputStream ois = new ObjectInputStream(
+                new ByteArrayInputStream(baos.toByteArray()))) {
+            restored = (UnsynchronizedSymmetricMap<String, Integer>) ois.readObject();
+        }
+
+        assertEquals(original.size(), restored.size());
+        assertEquals(Integer.valueOf(1), restored.get("A"));
+        assertEquals(Integer.valueOf(2), restored.get("B"));
+        assertEquals(Integer.valueOf(3), restored.get("C"));
+        assertEquals("A", restored.getKey(1).get());
+        assertEquals("B", restored.getKey(2).get());
+
+        restored.put("D", 4);
+        assertEquals(4, restored.size());
     }
 }
 

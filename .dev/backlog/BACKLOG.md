@@ -12,7 +12,7 @@ of each session.
 - [ ] `SortedChunkyList`
 - [ ] `Tuple` — a type-safe immutable tuple system without one class per arity
 - [ ] `CircularBuffer` — a circular doubly-linked list backed by a ring of nodes
-- [ ] Implement `Serializable` on all data structures
+- [x] Implement `Serializable` on all data structures
 - [ ] Set up multi-release JAR with Java 21 variant — chosen approach:
   full duplication of interfaces and classes in the Java 21 layer
   (no base class extraction, no cross-layer inheritance).
@@ -111,6 +111,10 @@ Each item should be benchmarked before and after to confirm impact.
 
 ### Project-wide
 
+- [x] Implement `Serializable` on all 8 collection classes — `serialVersionUID`,
+  inner data classes (`Chunk`, `Node`, `Entry`, `Bucket`) implement `Serializable`,
+  synchronized wrappers use `transient` locks + `readObject()`, 10 round-trip
+  tests across all black-box test files
 - [x] Fix all Checkstyle warnings across the entire codebase — `NeedBraces`,
   `LeftCurly`, `EmptyLineSeparator`, `NewlineAtEndOfFile`, `AvoidStarImport`,
   `UnusedImports`, `MissingSwitchDefault` (9 source files, 0 warnings remaining)

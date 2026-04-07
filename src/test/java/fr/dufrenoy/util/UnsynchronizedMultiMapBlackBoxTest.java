@@ -24,6 +24,10 @@ package fr.dufrenoy.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -346,5 +350,62 @@ public class UnsynchronizedMultiMapBlackBoxTest {
         assertEquals(2, subMap.size());
         assertEquals(1, subMap.get("x"));
         assertEquals(2, subMap.get("y"));
+    }
+
+    // ─── Serialization ───────────────────────────────────────────────────────
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSerializationRoundTrip() throws Exception {
+        UnsynchronizedMultiMap<String, Integer> original = new UnsynchronizedMultiMap<>();
+        original.put("A", 1);
+        original.put("B", 2);
+        original.put("C", 3);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(original);
+        }
+
+        UnsynchronizedMultiMap<String, Integer> restored;
+        try (ObjectInputStream ois = new ObjectInputStream(
+                new ByteArrayInputStream(baos.toByteArray()))) {
+            restored = (UnsynchronizedMultiMap<String, Integer>) ois.readObject();
+        }
+
+        assertEquals(original.size(), restored.size());
+        assertEquals(Integer.valueOf(1), restored.get("A"));
+        assertEquals(Integer.valueOf(2), restored.get("B"));
+        assertEquals(Integer.valueOf(3), restored.get("C"));
+
+        restored.put("D", 4);
+        assertEquals(4, restored.size());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSerializationRoundTrip_Recursive() throws Exception {
+        UnsynchronizedMultiMap<String, Object> root = new UnsynchronizedMultiMap<>();
+        UnsynchronizedMultiMap<String, Integer> sub = new UnsynchronizedMultiMap<>();
+        sub.put("x", 1);
+        sub.put("y", 2);
+        root.put("sub", sub);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(root);
+        }
+
+        UnsynchronizedMultiMap<String, Object> restored;
+        try (ObjectInputStream ois = new ObjectInputStream(
+                new ByteArrayInputStream(baos.toByteArray()))) {
+            restored = (UnsynchronizedMultiMap<String, Object>) ois.readObject();
+        }
+
+        assertEquals(1, restored.size());
+        UnsynchronizedMultiMap<String, Integer> restoredSub =
+                (UnsynchronizedMultiMap<String, Integer>) restored.get("sub");
+        assertEquals(2, restoredSub.size());
+        assertEquals(Integer.valueOf(1), restoredSub.get("x"));
     }
 }

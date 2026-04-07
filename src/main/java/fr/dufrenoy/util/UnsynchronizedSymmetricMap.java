@@ -23,6 +23,7 @@
 
 package fr.dufrenoy.util;
 
+import java.io.Serializable;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.Iterator;
@@ -73,7 +74,9 @@ import java.util.Set;
  * @param <V> the type of values
  */
 public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
-        implements SymmetricMap<K, V> {
+        implements SymmetricMap<K, V>, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /*@
       @ public invariant size() >= 0;
@@ -512,7 +515,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      *
      * <p>Package-private to allow access from {@link SynchronizedSymmetricMap}.
      */
-    static class Entry<K, V> implements Map.Entry<K, V> {
+    static class Entry<K, V> implements Map.Entry<K, V>, Serializable {
+
+        private static final long serialVersionUID = 1L;
 
         final K key;
         final int keyHash;
@@ -838,7 +843,9 @@ public class UnsynchronizedSymmetricMap<K, V> extends AbstractMap<K, V>
      *
      * <p>Package-private to allow access from {@link SynchronizedSymmetricMap}.
      */
-    static class Bucket<K, V> {
+    static class Bucket<K, V> implements Serializable {
+
+        private static final long serialVersionUID = 1L;
         Entry<K, V> firstByKey;
         Entry<K, V> firstByValue;
     }

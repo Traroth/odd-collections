@@ -26,6 +26,10 @@ import static fr.dufrenoy.util.ChunkyList.GrowingStrategy;
 import static fr.dufrenoy.util.ChunkyList.ShrinkingStrategy;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -321,5 +325,33 @@ public class SynchronizedChunkyListBlackBoxTest {
         SynchronizedChunkyList<String> list = new SynchronizedChunkyList<>();
         list.add("A");
         assertThrows(IllegalArgumentException.class, () -> list.set(0, null));
+    }
+
+    // ─── Serialization ───────────────────────────────────────────────────────
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSerializationRoundTrip() throws Exception {
+        SynchronizedChunkyList<String> original = new SynchronizedChunkyList<>(4);
+        original.add("A");
+        original.add("B");
+        original.add("C");
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(original);
+        }
+
+        SynchronizedChunkyList<String> restored;
+        try (ObjectInputStream ois = new ObjectInputStream(
+                new ByteArrayInputStream(baos.toByteArray()))) {
+            restored = (SynchronizedChunkyList<String>) ois.readObject();
+        }
+
+        assertEquals(original.size(), restored.size());
+        assertEquals(new ArrayList<>(original), new ArrayList<>(restored));
+
+        restored.add("D");
+        assertEquals(4, restored.size());
     }
 }

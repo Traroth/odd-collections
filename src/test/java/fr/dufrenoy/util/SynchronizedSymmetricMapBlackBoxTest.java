@@ -24,6 +24,10 @@ package fr.dufrenoy.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -970,5 +974,34 @@ public class SynchronizedSymmetricMapBlackBoxTest {
         assertEquals(100, iteratorSize.get());
         assertEquals(200, map.size());
         executor.shutdown();
+    }
+
+    // ─── Serialization ───────────────────────────────────────────────────────
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSerializationRoundTrip() throws Exception {
+        SynchronizedSymmetricMap<String, Integer> original = new SynchronizedSymmetricMap<>();
+        original.put("A", 1);
+        original.put("B", 2);
+        original.put("C", 3);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(original);
+        }
+
+        SynchronizedSymmetricMap<String, Integer> restored;
+        try (ObjectInputStream ois = new ObjectInputStream(
+                new ByteArrayInputStream(baos.toByteArray()))) {
+            restored = (SynchronizedSymmetricMap<String, Integer>) ois.readObject();
+        }
+
+        assertEquals(original.size(), restored.size());
+        assertEquals(Integer.valueOf(1), restored.get("A"));
+        assertEquals("A", restored.getKey(1).get());
+
+        restored.put("D", 4);
+        assertEquals(4, restored.size());
     }
 }
