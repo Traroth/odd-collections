@@ -414,6 +414,13 @@ Iterators on `keySet()`, `values()`, and `entrySet()` in `SynchronizedMultiMap` 
 
 ---
 
+## Documentation
+
+The full Javadoc is published at
+[traroth.github.io/odd-collections](https://traroth.github.io/odd-collections).
+
+---
+
 ## Requirements
 
 - **Java 11 or later** to use this library — Java 11 is the compilation target
