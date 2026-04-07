@@ -30,7 +30,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Generate Javadoc
-        run: mvn javadoc:javadoc -q
+        run: mvn compile javadoc:javadoc
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
