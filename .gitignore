@@ -44,3 +44,4 @@ pre-copilot-context.ps1
 
 ### Claude Code ###
 .claude/settings.local.json
+/dependency-reduced-pom.xml
